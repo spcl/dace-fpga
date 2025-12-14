@@ -1,0 +1,6 @@
+[submodule "dace_fpga/external/hlslib"]
+	path = dace_fpga/external/hlslib
+	url = https://github.com/definelicht/hlslib.git
+[submodule "dace_fpga/external/rtllib"]
+	path = dace_fpga/external/rtllib
+	url = https://github.com/carljohnsen/rtllib.git
