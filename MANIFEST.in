@@ -1,0 +1,5 @@
+include  dace_fpga/codegen/Xilinx_HLS.tcl.in
+graft dace_fpga/external/hlslib/cmake
+graft dace_fpga/external/hlslib/include
+graft dace_fpga/external/rtllib/cmake
+graft dace_fpga/external/rtllib/templates
