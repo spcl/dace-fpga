@@ -1,0 +1,18 @@
+# This is the official list of DaCe FPGA authors (individuals or organizations) for
+# copyright purposes.
+
+ETH Zurich
+Tal Ben-Nun
+Johannes de Fine Licht
+Tiziano De Matteis
+Alexandros Nikolaos Ziogas
+Timo Schneider
+Torsten Hoefler
+Dominic Hofer
+Philipp Schaad
+Oliver Rausch
+Andreas Kuster
+Carl-Johannes Johnsen
+Alexandru Calotoiu
+
+and other contributors listed in https://github.com/spcl/dace-fpga/graphs/contributors
