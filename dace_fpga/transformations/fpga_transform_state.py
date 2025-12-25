@@ -42,9 +42,10 @@ class FPGATransformState(transformation.MultiStateTransformation):
         return [sdutil.node_path_graph(cls.state)]
 
     def can_be_applied(self, graph, expr_index, sdfg, permissive=False):
+        from dace_fpga import api
         state = self.state
 
-        if not xfh.can_run_state_on_fpga(state):
+        if not api.can_run_state_on_fpga(state):
             return False
 
         for node in state.nodes():

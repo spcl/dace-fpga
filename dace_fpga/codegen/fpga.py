@@ -1,6 +1,7 @@
 # Copyright 2019-2021 ETH Zurich and the DaCe authors. All rights reserved.
 
 import ast
+import os
 from six import StringIO
 import collections
 import itertools
@@ -28,6 +29,7 @@ from dace.sdfg.utils import is_fpga_kernel
 from dace.symbolic import evaluate
 from collections import defaultdict
 from dace_fpga.codegen import fpga
+from dace_fpga import nodes as fpga_nodes
 
 if TYPE_CHECKING:
     from dace.codegen.targets.framecode import DaCeCodeGenerator
@@ -429,6 +431,11 @@ class FPGACodeGen(TargetCodeGenerator):
 
         # Memory width converters (gearboxing) to generate globally
         self.converters_to_generate = set()
+
+    @staticmethod
+    def cmake_files():
+        cmake = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'cmake', 'fpga.cmake')
+        return [cmake]
 
     @property
     def has_initializer(self):
@@ -1992,7 +1999,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         to_search = list(scope)
         while len(to_search) > 0:
             x = to_search.pop()
-            if (isinstance(x, (dace.sdfg.nodes.MapEntry, dace.sdfg.nodes.PipelineEntry))):
+            if (isinstance(x, (dace.sdfg.nodes.MapEntry, fpga_nodes.PipelineEntry))):
                 # Degenerate loops should not be pipelined
                 fully_degenerate = True
                 for begin, end, skip in x.map.range:
@@ -2052,7 +2059,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
 
             # Generate custom iterators if this is a pipelined (and thus
             # flattened) loop
-            if isinstance(node, dace.sdfg.nodes.PipelineEntry):
+            if isinstance(node, fpga_nodes.PipelineEntry):
                 for i in range(len(node.map.range)):
                     result.write("long {} = {};\n".format(node.map.params[i], node.map.range[i][0]))
                 for var, value in node.pipeline.additional_iterators.items():
@@ -2099,7 +2106,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             in_out_data = candidates_in.intersection(candidates_out)
 
             # Generate nested loops
-            if not isinstance(node, dace.sdfg.nodes.PipelineEntry):
+            if not isinstance(node, fpga_nodes.PipelineEntry):
 
                 for i, r in enumerate(node.map.range):
 
@@ -2233,7 +2240,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             # This was generated as unrolled processing elements, no need to
             # generate anything here
             return
-        if isinstance(node, dace.sdfg.nodes.PipelineExit):
+        if isinstance(node, fpga_nodes.PipelineExit):
             flat_it = node.pipeline.iterator_str()
             bound = node.pipeline.loop_bound_str()
             pipeline = node.pipeline

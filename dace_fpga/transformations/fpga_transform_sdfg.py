@@ -31,7 +31,7 @@ class FPGATransformSDFG(transformation.MultiStateTransformation):
 
     def can_be_applied(self, graph, expr_index, sdfg: SDFG, permissive=False):
         # Avoid import loops
-        from dace.transformation.interstate import FPGATransformState
+        from dace_fpga.transformations import FPGATransformState
 
         # Condition match depends on matching FPGATransformState for each state
         for state in sdfg.states():
@@ -45,7 +45,7 @@ class FPGATransformSDFG(transformation.MultiStateTransformation):
     def apply(self, _, sdfg: SDFG):
         # Avoid import loops
         from dace.transformation.interstate import NestSDFG
-        from dace.transformation.interstate import FPGATransformState
+        from dace_fpga.transformations import FPGATransformState
 
         cfg_id = sdfg.cfg_id
         nesting = NestSDFG()
