@@ -113,9 +113,9 @@ class XilinxCodeGen(fpga.FPGACodeGen):
 
         host_code = CodeIOStream()
         host_code.write("""\
-#include "dace/xilinx/host.h"
+#include "dace_fpga/xilinx/host.h"
 #include "dace/dace.h"
-#include "dace/xilinx/stream.h"
+#include "dace_fpga/xilinx/stream.h"
 """)
         if len(self._dispatcher.instrumentation) > 2:
             host_code.write("""\
@@ -497,7 +497,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                         module_stream, kernel_stream, external_streams, multi_pumped):
 
         # Write header
-        module_stream.write("""#include <dace/fpga_device.h>
+        module_stream.write("""#include <dace_fpga/fpga_device.h>
 #include <dace/math.h>
 #include <dace/complex.h>""", cfg)
         self._frame.generate_fileheader(sdfg, module_stream, 'xilinx_device')

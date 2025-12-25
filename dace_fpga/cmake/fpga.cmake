@@ -50,6 +50,8 @@ foreach(DACE_FILE ${DACE_FILES})
   endif()
 endforeach()
 
+include_directories(SYSTEM  ${CMAKE_CURRENT_LIST_DIR}/../runtime/include)
+
 if(DACE_ENABLE_XILINX OR DACE_ENABLE_INTELFPGA)
   set(DACE_HLSLIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../external/hlslib)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${DACE_HLSLIB_DIR}/cmake)

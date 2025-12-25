@@ -1,8 +1,8 @@
 // Copyright 2019-2021 ETH Zurich and the DaCe authors. All rights reserved.
 #pragma once
 
-#include "dace/xilinx/vec.h"
-#include "dace/xilinx/stream.h"
+#include <dace_fpga/xilinx/vec.h>
+#include <dace_fpga/xilinx/stream.h>
 
 namespace dace {
 

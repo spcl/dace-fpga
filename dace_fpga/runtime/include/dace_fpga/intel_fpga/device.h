@@ -3,4 +3,4 @@
 
 #pragma OPENCL EXTENSION cl_intel_channels : enable
 
-#include "dace/intel_fpga/math.h"
+#include <dace_fpga/intel_fpga/math.h>

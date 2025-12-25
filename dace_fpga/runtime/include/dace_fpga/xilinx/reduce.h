@@ -9,7 +9,7 @@
 #include "hlslib/xilinx/TreeReduce.h"
 
 #include "dace/types.h"
-#include "dace/xilinx/access.h"
+#include <dace_fpga/xilinx/access.h>
 
 namespace dace {
 

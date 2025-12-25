@@ -491,6 +491,15 @@ class FPGACodeGen(TargetCodeGenerator):
         # Call vendor-specific preprocessing
         self._internal_preprocess(sdfg)
 
+    def get_includes(self) -> dict[str, list[str]]:
+        """
+        Returns a dictionary mapping backends to lists of include files
+        required by this target.
+        
+        :return: A dictionary of backend names to lists of include files.
+        """
+        return {'frame': ['dace_fpga/dace_fpga.h']}
+
     def _kernels_subgraphs(self, graph: Union[dace.sdfg.SDFGState, ScopeSubgraphView], dependencies: dict):
         """
         Finds subgraphs of an SDFGState or ScopeSubgraphView that correspond to kernels.

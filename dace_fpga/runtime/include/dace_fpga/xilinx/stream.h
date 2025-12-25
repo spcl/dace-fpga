@@ -2,7 +2,7 @@
 #pragma once
 
 #include "hlslib/xilinx/Stream.h"
-#include "dace/xilinx/vec.h"
+#include <dace_fpga/xilinx/vec.h>
 #ifndef DACE_SYNTHESIS
 #include <string>  // std::to_string
 #endif

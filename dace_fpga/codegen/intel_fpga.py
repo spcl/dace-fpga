@@ -126,7 +126,7 @@ class IntelFPGACodeGen(fpga.FPGACodeGen):
             raise cgx.CodegenError("Unknown Intel FPGA execution mode: {}".format(execution_mode))
 
         host_code = CodeIOStream()
-        host_code.write('#include "dace/intel_fpga/host.h"')
+        host_code.write('#include "dace_fpga/intel_fpga/host.h"')
         if len(self._dispatcher.instrumentation) > 2:
             host_code.write("""\
 #include "dace/perf/reporting.h"
@@ -492,7 +492,7 @@ for (int u_{name} = 0; u_{name} < {size} - {veclen}; ++u_{name}) {{
         #reset list of needed converters
         self.converters_to_generate = set()
 
-        kernel_header_stream.write("#include <dace/fpga_device.h>\n\n", cfg)
+        kernel_header_stream.write("#include <dace_fpga/fpga_device.h>\n\n", cfg)
         self.generate_constants(sdfg, kernel_header_stream)
         kernel_header_stream.write("\n", cfg)
 
