@@ -1,4 +1,5 @@
 # Copyright 2019-2026 ETH Zurich and the DaCe authors. All rights reserved.
+import ast
 import dace
 from dace import registry, dtypes, symbolic
 from dace.codegen import cppunparse

@@ -41,6 +41,9 @@ jobs:
         source ~/.venv/bin/activate # activate venv
         export COVERAGE_RCFILE=`pwd`/.coveragerc
 
+        # Package setup
+        export PYTHONPATH=$PYTHONPATH:`pwd`
+
         # Xilinx setup
         export PATH=/opt/Xilinx/Vitis/2022.1/bin:/opt/Xilinx/Vitis_HLS/2022.1/bin:/opt/Xilinx/Vivado/2022.1/bin:$PATH
         export XILINX_XRT=/opt/xilinx/xrt
