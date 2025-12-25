@@ -2,7 +2,7 @@
 import argparse
 import dace
 import numpy as np
-from dace.transformation.interstate import FPGATransformSDFG
+from dace_fpga.transformations import FPGATransformSDFG
 
 N = dace.symbol('N')
 

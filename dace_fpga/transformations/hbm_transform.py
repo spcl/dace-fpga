@@ -4,11 +4,10 @@ from typing import Any, Dict, List, Union
 
 from dace import dtypes, properties, registry, subsets, symbolic
 from dace.sdfg import propagation, utils, graph
-from dace.codegen.targets import fpga
 from dace.transformation import transformation, helpers
 from dace.sdfg import nodes as nd
 from dace import SDFG, SDFGState, memlet, data
-
+from dace_fpga.codegen import fpga
 
 def modify_bank_assignment(array_name: str,
                            sdfg: SDFG,

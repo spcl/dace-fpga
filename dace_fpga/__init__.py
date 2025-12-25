@@ -13,8 +13,8 @@ Config.extend(os.path.join(os.path.dirname(__file__), 'fpga_config_schema.yml'))
 dtypes.ScheduleType.register('FPGA_Multi_Pumped')  #: Used for double pumping
 dtypes.SCOPEDEFAULT_SCHEDULE[dtypes.ScheduleType.FPGA_Multi_Pumped] = dtypes.ScheduleType.FPGA_Device
 
-dtypes.StorageType.register('FPGA_ShiftRegister')  #: Only accessible at constant indices
-dtypes.FPGA_STORAGES.append(dtypes.StorageType.FPGA_ShiftRegister)
+# dtypes.StorageType.register('FPGA_ShiftRegister')  #: Only accessible at constant indices
+# dtypes.FPGA_STORAGES.append(dtypes.StorageType.FPGA_ShiftRegister)
 
 dtypes.ScheduleType.register('Unrolled')
 dtypes.SCOPEDEFAULT_SCHEDULE[dtypes.ScheduleType.Unrolled] = dtypes.ScheduleType.CPU_Multicore

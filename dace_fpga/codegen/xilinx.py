@@ -13,7 +13,8 @@ from dace.codegen import exceptions as cgx
 from dace.codegen.codeobject import CodeObject
 from dace.codegen.dispatcher import DefinedType
 from dace.codegen.prettycode import CodeIOStream
-from dace.codegen.targets import cpp, fpga
+from dace.codegen.targets import cpp
+from dace_fpga.codegen import fpga
 from typing import List, Union, Tuple
 
 from dace.sdfg.state import ControlFlowRegion

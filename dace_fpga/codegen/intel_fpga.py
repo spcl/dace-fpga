@@ -14,7 +14,8 @@ from dace.codegen import exceptions as cgx
 from dace.codegen.codeobject import CodeObject
 from dace.codegen.dispatcher import DefinedType
 from dace.codegen.prettycode import CodeIOStream
-from dace.codegen.targets import cpp, fpga
+from dace.codegen.targets import cpp
+from dace_fpga.codegen import fpga
 from dace.codegen.common import codeblock_to_cpp
 from dace.codegen.tools.type_inference import infer_expr_type
 from dace.frontend.python.astutils import rname, unparse, evalnode

@@ -5,7 +5,7 @@ import dace
 from dace import registry
 from dace.sdfg.scope import ScopeSubgraphView
 from dace.codegen.prettycode import CodeIOStream
-from dace.codegen.targets.target import TargetCodeGenerator
+from dace.codegen.target import TargetCodeGenerator
 from dace.codegen.targets.framecode import DaCeCodeGenerator
 from itertools import product
 from dace.sdfg import state

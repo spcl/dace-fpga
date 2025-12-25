@@ -21,12 +21,13 @@ from dace.codegen import exceptions as cgx
 from dace.codegen.dispatcher import DefinedType
 from dace.codegen.prettycode import CodeIOStream
 from dace.codegen.common import update_persistent_desc
-from dace.codegen.targets.target import TargetCodeGenerator
+from dace.codegen.target import TargetCodeGenerator
 from dace.codegen import cppunparse
 from dace.sdfg.state import ControlFlowRegion, SDFGState, StateSubgraphView
 from dace.sdfg.utils import is_fpga_kernel
 from dace.symbolic import evaluate
 from collections import defaultdict
+from dace_fpga.codegen import fpga
 
 if TYPE_CHECKING:
     from dace.codegen.targets.framecode import DaCeCodeGenerator
@@ -330,10 +331,10 @@ def is_vendor_supported(fpga_vendor: str) -> bool:
     :param fpga_vendor: the fpga vendor
     """
 
-    registered_codegens = dace.codegen.targets.target.TargetCodeGenerator._registry_
+    registered_codegens = TargetCodeGenerator._registry_
     supported_vendors = set()
     for cl, attr in registered_codegens.items():
-        if issubclass(cl, dace.codegen.targets.fpga.FPGACodeGen):
+        if issubclass(cl, fpga.FPGACodeGen):
             if attr["name"] == fpga_vendor.lower():
                 break
             else:
@@ -2442,7 +2443,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
     def make_ptr_vector_cast(self, *args, **kwargs):
         return cpp.make_ptr_vector_cast(*args, **kwargs)
 
-    def ptr(self, name: str, desc: data.Data, sdfg: SDFG = None) -> str:
+    def ptr(self, name: str, desc: dt.Data, sdfg: SDFG = None) -> str:
         """
         Returns a string that points to the data based on its name and descriptor.
 

@@ -7,7 +7,8 @@ import warnings
 from dace import dtypes, config, registry, symbolic, nodes, data, SDFG
 from dace.sdfg import graph, find_input_arraynode, find_output_arraynode
 from dace.codegen import codeobject, dispatcher, prettycode
-from dace.codegen.targets import target, framecode
+from dace.codegen import target
+from dace.codegen.targets import framecode
 from dace.codegen.common import sym2cpp
 from dace.sdfg.state import ControlFlowRegion, SDFGState, StateSubgraphView
 
