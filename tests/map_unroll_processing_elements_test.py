@@ -1,7 +1,7 @@
 # Copyright 2019-2021 ETH Zurich and the DaCe authors. All rights reserved.
 import dace
 import dace.sdfg.nodes as nodes
-from dace.fpga_testing import xilinx_test
+from dace_fpga.fpga_testing import xilinx_test
 import importlib.util
 import numpy as np
 from pathlib import Path

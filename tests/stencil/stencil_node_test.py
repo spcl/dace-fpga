@@ -1,9 +1,10 @@
 # Copyright 2019-2021 ETH Zurich and the DaCe authors. All rights reserved.
 import dace
-from dace.fpga_testing import intel_fpga_test
+from dace_fpga.fpga_testing import intel_fpga_test
 from dace.libraries.stencil import Stencil
 import numpy as np
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 
 SIZE = dace.symbol("size")
 ROWS = dace.symbol("rows")

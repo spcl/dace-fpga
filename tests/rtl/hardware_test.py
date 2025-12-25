@@ -3,14 +3,14 @@
     Test suite for testing RTL integration with DaCe targeting Xilinx FPGAs.
 """
 import dace
-from dace.fpga_testing import rtl_test
+from dace_fpga.fpga_testing import rtl_test
 import numpy as np
 import importlib.util
 from pathlib import Path
 import pytest
 from dace.transformation.dataflow import StreamingMemory, Vectorization
-from dace.transformation.interstate import FPGATransformState
-from dace.transformation.subgraph import TemporalVectorization
+from dace_fpga.transformations import FPGATransformState, TemporalVectorization
+
 
 
 def make_vadd_sdfg(N: dace.symbol, veclen: int = 8):

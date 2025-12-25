@@ -12,7 +12,7 @@ import argparse
 import subprocess
 from dace.config import Config
 
-from dace.fpga_testing import intel_fpga_test
+from dace_fpga.fpga_testing import intel_fpga_test
 from dace.memlet import Memlet
 
 N = dace.symbol("N")

@@ -7,7 +7,7 @@ from six import StringIO
 import numpy as np
 
 import dace
-from dace import registry, dtypes, symbolic
+from dace import registry, dtypes, data as dt
 from dace.codegen import cppunparse
 from dace.config import Config
 from dace.codegen import exceptions as cgx
@@ -30,6 +30,7 @@ import dace.sdfg.utils as utils
 from dace.symbolic import evaluate
 from collections import defaultdict
 from dace_fpga.codegen.opencl_unparser import OpenCLDaceKeywordRemover
+from dace_fpga import opencl_types as ocl_types
 
 REDUCTION_TYPE_TO_HLSLIB = {
     dace.dtypes.ReductionType.Min: "min",
@@ -301,19 +302,19 @@ DACE_EXPORTED int __dace_exit_intel_fpga({sdfg_state_name} *__state) {{
 
     @staticmethod
     def make_vector_type(dtype, is_const):
-        return "{}{}".format("const " if is_const else "", dtype.ocltype)
+        return "{}{}".format("const " if is_const else "", ocl_types.dtype_to_ocl_str(dtype))
 
     def make_kernel_argument(self, data, var_name, is_output, with_vectorization):
         if isinstance(data, dace.data.Array):
             if with_vectorization:
-                vec_type = data.dtype.ocltype
+                vec_type = ocl_types.dtype_to_ocl_str(data.dtype)
             else:
-                vec_type = fpga.vector_element_type_of(data.dtype).ocltype
+                vec_type = ocl_types.dtype_to_ocl_str(fpga.vector_element_type_of(data.dtype))
             return "__global volatile  {}* restrict {}".format(vec_type, var_name)
         elif isinstance(data, dace.data.Stream):
             return None  # Streams are global objects
         else:  # Scalar or structure
-            return f'{data.dtype.ocltype} {var_name}'
+            return f'{ocl_types.dtype_to_ocl_str(data.dtype)} {var_name}'
 
     @staticmethod
     def generate_unroll_loop_pre(kernel_stream, factor, sdfg, cfg, state_id, node):
@@ -360,7 +361,7 @@ DACE_EXPORTED int __dace_exit_intel_fpga({sdfg_state_name} *__state) {{
         else:
             raise NotImplementedError("Unimplemented read type: {}".format(defined_type))
         if is_pack:
-            ocltype = fpga.vector_element_type_of(dtype).ocltype
+            ocltype = ocl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype))
             self.converters_to_generate.add((True, ocltype, packing_factor))
             return "pack_{}{}(&({}))".format(ocltype, packing_factor, read_expr)
         else:
@@ -391,11 +392,11 @@ DACE_EXPORTED int __dace_exit_intel_fpga({sdfg_state_name} *__state) {{
                 else:
                     # use max/min opencl builtins
                     return "{}[{}] = {}{}({}[{}],{});".format(
-                        write_expr, index, ("f" if dtype.ocltype == "float" or dtype.ocltype == "double" else ""),
+                        write_expr, index, ("f" if ocl_types.dtype_to_ocl_str(dtype) == "float" or ocl_types.dtype_to_ocl_str(dtype) == "double" else ""),
                         REDUCTION_TYPE_TO_HLSLIB[redtype], write_expr, index, read_expr)
             else:
                 if is_unpack:
-                    ocltype = fpga.vector_element_type_of(dtype).ocltype
+                    ocltype = ocl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype))
                     self.converters_to_generate.add((False, ocltype, packing_factor))
                     if not index or index == "0":
                         return "unpack_{}{}({}, {});".format(ocltype, packing_factor, read_expr, write_expr)
@@ -415,14 +416,14 @@ DACE_EXPORTED int __dace_exit_intel_fpga({sdfg_state_name} *__state) {{
                 else:
                     # use max/min opencl builtins
                     return "{} = {}{}({},{});".format(
-                        write_expr, ("f" if dtype.ocltype == "float" or dtype.ocltype == "double" else ""),
+                        write_expr, ("f" if ocl_types.dtype_to_ocl_str(dtype) == "float" or ocl_types.dtype_to_ocl_str(dtype) == "double" else ""),
                         REDUCTION_TYPE_TO_HLSLIB[redtype], write_expr, read_expr)
             else:
                 if is_unpack:
-                    ocltype = fpga.vector_element_type_of(dtype).ocltype
+                    ocltype = ocl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype))
                     self.converters_to_generate.add((False, ocltype, packing_factor))
                     return "unpack_{}{}({}, {});".format(
-                        vector_element_type_of(dtype).ocltype, packing_factor, read_expr, var_name)
+                        ocl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype)), packing_factor, read_expr, var_name)
                 else:
                     return "{} = {};".format(var_name, read_expr)
         raise NotImplementedError("Unimplemented write type: {}".format(defined_type))
@@ -584,8 +585,8 @@ for (int u_{name} = 0; u_{name} < {size} - {veclen}; ++u_{name}) {{
 
             if arg is not None:
                 #change c type to opencl type
-                if arg in dtypes._CTYPES_TO_OCLTYPES:
-                    arg = dtypes._CTYPES_TO_OCLTYPES[arg]
+                if arg in ocl_types.CTYPES_TO_OCLTYPES:
+                    arg = ocl_types.CTYPES_TO_OCLTYPES[arg]
 
                 kernel_args_opencl.append(arg)
                 kernel_args_host.append(p.as_arg(True, name=pname))
@@ -747,7 +748,7 @@ __kernel void \\
         arguments = [f'{atype} {aname}' for atype, aname, _ in memlet_references]
         fsyms = node.sdfg.used_symbols(all_symbols=False, keep_defined_in_mapping=True)
         arguments += [
-            f'{node.sdfg.symbols[aname].ocltype} {aname}' for aname in sorted(node.symbol_mapping.keys())
+            f'{ocl_types.dtype_to_ocl_str(node.sdfg.symbols[aname].dtype)} {aname}' for aname in sorted(node.symbol_mapping.keys())
             if aname in fsyms and aname not in sdfg.constants
         ]
         arguments = ', '.join(arguments)
@@ -784,15 +785,15 @@ __kernel void \\
             defined_type, defined_ctype = self._dispatcher.defined_vars.get(ptrname, 1)
 
             #change c type to opencl type
-            if defined_ctype in dtypes._CTYPES_TO_OCLTYPES:
-                defined_ctype = dtypes._CTYPES_TO_OCLTYPES[defined_ctype]
+            if defined_ctype in ocl_types.CTYPES_TO_OCLTYPES:
+                defined_ctype = ocl_types.CTYPES_TO_OCLTYPES[defined_ctype]
 
             if isinstance(desc, dace.data.Array) and (desc.storage == dtypes.StorageType.FPGA_Global
                                                       or desc.storage == dtypes.StorageType.FPGA_Local):
                 # special case: in intel FPGA this must be handled properly to guarantee OpenCL compatibility
                 # (no pass by reference)
                 # The defined type can be a scalar, and therefore we get its address
-                vec_type = desc.dtype.ocltype
+                vec_type = ocl_types.dtype_to_ocl_str(desc.dtype)
                 offset = cpp.cpp_offset_expr(desc, in_memlet.subset, None)
                 offset_expr = '[' + offset + ']' if defined_type is not DefinedType.Scalar else ''
 
@@ -834,14 +835,14 @@ __kernel void \\
                 defined_type, defined_ctype = self._dispatcher.defined_vars.get(ptrname, 1)
 
                 #change c type to opencl type
-                if defined_ctype in dtypes._CTYPES_TO_OCLTYPES:
-                    defined_ctype = dtypes._CTYPES_TO_OCLTYPES[defined_ctype]
+                if defined_ctype in ocl_types.CTYPES_TO_OCLTYPES:
+                    defined_ctype = ocl_types.CTYPES_TO_OCLTYPES[defined_ctype]
 
                 if isinstance(desc, dace.data.Array) and (desc.storage == dtypes.StorageType.FPGA_Global
                                                           or desc.storage == dtypes.StorageType.FPGA_Local):
                     # special case: in intel FPGA this must be handled properly.
                     # The defined type can be scalar, and therefore we get its address
-                    vec_type = desc.dtype.ocltype
+                    vec_type = ocl_types.dtype_to_ocl_str(desc.dtype)
                     offset = cpp.cpp_offset_expr(desc, out_memlet.subset, None)
                     offset_expr = '[' + offset + ']' if defined_type is not DefinedType.Scalar else ''
                     if desc.storage == dtypes.StorageType.FPGA_Global:
@@ -915,7 +916,7 @@ __kernel void \\
             # derive the declaration/definition
 
             qualifier = "__global volatile "
-            atype = dtypes.pointer(nodedesc.dtype).ocltype + " restrict"
+            atype = ocl_types.dtype_to_ocl_str(dtypes.pointer(nodedesc.dtype)) + " restrict"
             aname = ptrname
             viewed_desc = sdfg.arrays[edge.data.data]
             eptr = cpp.ptr(edge.data.data, viewed_desc, sdfg, self._frame)
@@ -1267,7 +1268,7 @@ __kernel void \\
 
         for cstname, (csttype, cstval) in sdfg.constants_prop.items():
             if isinstance(csttype, dace.data.Array):
-                const_str = "__constant " + csttype.dtype.ocltype + \
+                const_str = "__constant " + ocl_types.dtype_to_ocl_str(csttype.dtype) + \
                             " " + cstname + "[" + str(cstval.size) + "]"
 
                 if cstname not in self.generated_constants:
@@ -1346,9 +1347,10 @@ __kernel void \\
     def emit_interstate_variable_declaration(self, name: str, dtype: dtypes.typeclass, callsite_stream: CodeIOStream,
                                              sdfg: SDFG):
         isvar = dt.Scalar(dtype)
-        if schedule in (dtypes.ScheduleType.FPGA_Device, dtypes.ScheduleType.FPGA_Multi_Pumped):
+        if self._in_device_code:
+        #if schedule in (dtypes.ScheduleType.FPGA_Device, dtypes.ScheduleType.FPGA_Multi_Pumped):
             # Emit OpenCL type
-            callsite_stream.write(f'{isvarType.ocltype} {isvarName};\n', sdfg)
+            callsite_stream.write(f'{ocl_types.dtype_to_ocl_str(dtype)} {name};\n', sdfg)
         else:
             callsite_stream.write('%s;\n' % (isvar.as_arg(with_types=True, name=name)), sdfg)
         self._frame.dispatcher.defined_vars.add(name, DefinedType.Scalar, dtype.ctype)

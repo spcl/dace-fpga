@@ -8,9 +8,10 @@ Unfortunately this doesn't currently work for Intel, since Intel does not
 support vectors of vectors in kernel code.
 """
 import dace
-from dace.fpga_testing import fpga_test, xilinx_test
+from dace_fpga.fpga_testing import fpga_test, xilinx_test
 from dace.libraries.standard import Gearbox
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 import numpy as np
 
 dtype = dace.float32

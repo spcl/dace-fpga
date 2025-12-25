@@ -5,8 +5,9 @@ import dace.dtypes
 import numpy as np
 import dace as dc
 import pytest
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 from dace.transformation.dataflow import StreamingMemory, StreamingComposition, MapFusionVertical
 from dace.transformation.auto.auto_optimize import auto_optimize
 import argparse

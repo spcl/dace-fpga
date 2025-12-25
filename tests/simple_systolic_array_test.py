@@ -9,7 +9,7 @@ import dace
 import numpy as np
 import select
 import sys
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 
 N = dace.symbol("N")
 P = dace.symbol("P")

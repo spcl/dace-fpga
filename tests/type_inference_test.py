@@ -2,8 +2,8 @@
 """ Type inference test with annotated types. """
 
 import dace
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
 import numpy as np
 
 N = dace.symbol("N")

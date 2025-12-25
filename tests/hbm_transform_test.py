@@ -1,6 +1,6 @@
 # Copyright 2019-2023 ETH Zurich and the DaCe authors. All rights reserved.
 
-from dace.fpga_testing import xilinx_test
+from dace_fpga.fpga_testing import xilinx_test
 from dace.sdfg.state import SDFGState
 import numpy as np
 from dace import dtypes
@@ -8,7 +8,7 @@ from dace.transformation.interstate.sdfg_nesting import InlineSDFG
 from typing import List, Tuple
 from dace.sdfg import SDFG, nodes
 import dace
-from dace.transformation.dataflow import HbmTransform
+from dace_fpga.transformations import HbmTransform
 from dace.transformation.interstate import NestSDFG
 from functools import reduce
 

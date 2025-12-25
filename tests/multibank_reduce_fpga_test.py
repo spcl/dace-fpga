@@ -2,7 +2,7 @@
 
 import dace
 from dace import subsets
-from dace.fpga_testing import xilinx_test
+from dace_fpga.fpga_testing import xilinx_test
 import numpy as np
 import pytest
 from dace.config import set_temporary

@@ -10,9 +10,10 @@ import networkx as nx
 import numpy as np
 
 from dace.transformation.dataflow import streaming_memory as sm, MapExpansion
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
-from dace.fpga_testing import xilinx_test
-from dace.transformation.auto.fpga import fpga_rr_interleave_containers_to_banks
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
+from dace_fpga.fpga_testing import xilinx_test
+from dace_fpga.transformations.fpga_auto_opt import fpga_rr_interleave_containers_to_banks
 
 M, N, K = 64, 64, 64
 

@@ -4,8 +4,9 @@
 import dace
 import numpy as np
 import pytest
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG, GPUTransformSDFG, NestSDFG
-from dace.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG, GPUTransformSDFG, NestSDFG
+from dace_fpga.fpga_testing import fpga_test
 
 N = dace.symbol('N')
 

@@ -1,7 +1,7 @@
 import dace
 from multibank_copy_fpga_test import mkc
 from dace.dtypes import StorageType
-from dace.transformation.dataflow import BankSplit
+from dace_fpga.transformations import BankSplit
 from dace.transformation import optimizer
 import numpy as np
 

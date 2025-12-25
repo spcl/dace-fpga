@@ -6,8 +6,9 @@ import numpy as np
 import dace as dc
 import pytest
 import argparse
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 from dace.transformation.dataflow import StreamingMemory, StreamingComposition
 from dace.transformation.auto.auto_optimize import auto_optimize
 from dace.autodiff import add_backward_pass
@@ -155,6 +156,7 @@ def run_cholesky_autodiff():
     jax_grad = jax.jit(jax.grad(jax_kernel))
     jax_grad_A = jax_grad(A_jax)
     np.testing.assert_allclose(gradient_A, jax_grad_A, rtol=1e-4, atol=1e-4)
+
 
 @fpga_test(assert_ii_1=False)
 def test_fpga():

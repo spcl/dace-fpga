@@ -5,9 +5,11 @@ import numpy as np
 import dace
 import pytest
 import argparse
-from dace.transformation.auto.auto_optimize import auto_optimize, fpga_auto_opt
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace.transformation.auto.auto_optimize import auto_optimize
+from dace_fpga.transformations import fpga_auto_opt
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 from dace.autodiff import add_backward_pass
 
 nx, ny, nit = (dace.symbol(s, dace.int64) for s in ('nx', 'ny', 'nit'))

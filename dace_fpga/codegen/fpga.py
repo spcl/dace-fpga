@@ -30,6 +30,7 @@ from dace.symbolic import evaluate
 from collections import defaultdict
 from dace_fpga.codegen import fpga
 from dace_fpga import nodes as fpga_nodes
+from dace_fpga import opencl_types as ocl_types
 
 if TYPE_CHECKING:
     from dace.codegen.targets.framecode import DaCeCodeGenerator
@@ -2161,7 +2162,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                                 if np.dtype(end_type.dtype.type) > np.dtype('uint32'):
                                     v = dace.config.Config.get("compiler", "fpga", "vendor")
                                     if v.casefold() == 'intel_fpga'.casefold():
-                                        loop_var_type = end_type.ocltype
+                                        loop_var_type = ocl_types.dtype_to_ocl_str(end_type)
                                     else:
                                         loop_var_type = end_type.ctype
                                 elif np.issubdtype(np.dtype(end_type.dtype.type), np.unsignedinteger):

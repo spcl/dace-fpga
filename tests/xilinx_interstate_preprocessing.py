@@ -14,8 +14,9 @@ import numpy as np
 import dace as dc
 import pytest
 import argparse
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 
 N0 = dace.symbol('N0', dtype=dace.uint32)
 N1 = dace.symbol('N1', dtype=dace.uint32)

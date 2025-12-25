@@ -2,7 +2,7 @@
 
 import dace
 from dace import subsets as sbs, dtypes, memlet as mem
-from dace.fpga_testing import xilinx_test
+from dace_fpga.fpga_testing import xilinx_test
 import numpy as np
 
 # Checks dynamic access and dynamic loop bounds from multibank HBM and DDR

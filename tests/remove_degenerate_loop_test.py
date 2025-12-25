@@ -1,6 +1,6 @@
 # Copyright 2019-2021 ETH Zurich and the DaCe authors. All rights reserved.
 import dace
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 
 import copy
 import numpy as np

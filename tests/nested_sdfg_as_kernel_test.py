@@ -13,7 +13,7 @@ import numpy as np
 import argparse
 import subprocess
 
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 from dace.memlet import Memlet
 
 

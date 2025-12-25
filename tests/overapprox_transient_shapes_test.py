@@ -7,8 +7,8 @@
 
 import numpy as np
 import dace
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
 
 M, N = (dace.symbol(s, dtype=dace.int32) for s in ('M', 'N'))
 

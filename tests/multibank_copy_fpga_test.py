@@ -2,9 +2,9 @@
 from dace import subsets as sbs, dtypes, memlet as mem
 import dace
 import numpy as np
-from dace.codegen.targets.fpga import _FPGA_STORAGE_TYPES
+from dace_fpga.codegen.fpga import _FPGA_STORAGE_TYPES
 from dace.dtypes import StorageType
-from dace.fpga_testing import fpga_test, xilinx_test
+from dace_fpga.fpga_testing import fpga_test, xilinx_test
 
 # A test checking copies involving Multibank-arrays using HBM and DDR in some way
 

@@ -12,7 +12,7 @@ import numpy as np
 import argparse
 
 from dace.memlet import Memlet
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 
 N = dace.symbol("N")
 

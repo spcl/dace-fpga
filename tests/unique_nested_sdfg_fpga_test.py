@@ -9,7 +9,7 @@ import argparse
 import subprocess
 
 from dace.memlet import Memlet
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 
 
 def make_vecAdd_sdfg(sdfg_name: str, dtype=dace.float32):

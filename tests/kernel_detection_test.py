@@ -8,8 +8,9 @@ from pathlib import Path
 import pytest
 import re
 from dace.sdfg.utils import is_fpga_kernel
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
-from dace.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
+from dace_fpga.fpga_testing import fpga_test
 from dace import config
 
 

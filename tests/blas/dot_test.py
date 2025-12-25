@@ -9,10 +9,11 @@ import scipy
 import dace
 from dace.memlet import Memlet
 
-from dace.fpga_testing import xilinx_test, intel_fpga_test
+from dace_fpga.fpga_testing import xilinx_test, intel_fpga_test
 import dace.libraries.blas as blas
 
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 from dace.transformation.dataflow import StreamingMemory
 from dace.config import set_temporary
 

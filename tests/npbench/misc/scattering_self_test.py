@@ -5,11 +5,10 @@ import numpy as np
 import dace as dc
 import pytest
 import argparse
-from dace.fpga_testing import fpga_test, xilinx_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
-from dace.transformation.dataflow import StreamingMemory, StreamingComposition
-from dace.transformation.auto.auto_optimize import auto_optimize, fpga_auto_opt
-from dace.config import set_temporary
+from dace_fpga.fpga_testing import fpga_test, xilinx_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
+from dace.transformation.auto.auto_optimize import auto_optimize
 
 NA, NB, Nkz, NE, Nqz, Nw, Norb, N3D = (dc.symbol(s, dc.int64)
                                        for s in ('NA', 'NB', 'Nkz', 'NE', 'Nqz', 'Nw', 'Norb', 'N3D'))

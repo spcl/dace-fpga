@@ -2,7 +2,7 @@ import argparse
 import dace
 import numpy as np
 import re
-from dace.fpga_testing import intel_fpga_test
+from dace_fpga.fpga_testing import intel_fpga_test
 
 DTYPE = dace.float32
 

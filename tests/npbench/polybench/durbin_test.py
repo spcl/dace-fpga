@@ -5,10 +5,10 @@ import numpy as np
 import dace as dc
 import pytest
 import argparse
-from dace.fpga_testing import fpga_test, xilinx_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
-from dace.transformation.dataflow import StreamingMemory, StreamingComposition
-from dace.transformation.auto.auto_optimize import auto_optimize, fpga_auto_opt
+from dace_fpga.fpga_testing import fpga_test, xilinx_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
+from dace.transformation.auto.auto_optimize import auto_optimize
 from dace.config import set_temporary
 from dace.autodiff import add_backward_pass
 
@@ -172,6 +172,7 @@ def run_durbin_autodiff():
     r_jax = initialize(N)
     jax_grad_r = jax_grad(r_jax)
     np.testing.assert_allclose(gradient_r, jax_grad_r)
+
 
 @fpga_test(assert_ii_1=False)
 def test_fpga():

@@ -7,10 +7,10 @@
 import click
 import dace
 import numpy as np
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 
 from dace.transformation.dataflow import MapTiling
-from dace.transformation.interstate import FPGATransformSDFG
+from dace_fpga.transformations import FPGATransformSDFG
 
 N = dace.symbol("N")
 

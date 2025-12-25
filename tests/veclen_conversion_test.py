@@ -1,7 +1,7 @@
 # Copyright 2019-2021 ETH Zurich and the DaCe authors. All rights reserved.
 import dace
 import numpy as np
-from dace.fpga_testing import intel_fpga_test
+from dace_fpga.fpga_testing import intel_fpga_test
 
 SIZE = dace.symbol("N")
 VECTOR_LENGTH = dace.symbol("W")

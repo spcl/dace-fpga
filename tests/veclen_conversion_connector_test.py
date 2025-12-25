@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 from veclen_conversion_test import make_sdfg
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 
 
 #TODO: Investigate and re-enable if possible.

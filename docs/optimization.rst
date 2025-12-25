@@ -27,7 +27,7 @@ The resulting SDFGs can be can be further optimized using general-purpose transf
 This includes platform-agnostic transformations (such as Trivial Map Elimination, Map Collapsing, Map tiling, ...) and more
 FPGA-oriented transformations, which we describe here.
 
-* :py:func:`~dace.transformation.interstate.fpga_transform_sdfg.FPGATransformSDFG`: programmers can automatically offload a full
+* :py:func:`~dace_fpga.transformations.fpga_transform_sdfg.FPGATransformSDFG`: programmers can automatically offload a full
   SDFG using this transformation. This takes care of creating create additional pre- and post-states performing memory transfers
   between host and device. The memories accessed by the transformed subgraph are replaced with their FPGA equivalents.
 * :py:func:`~dace.transformation.dataflow.streaming_memory.StreamingMemory`: this transformation enables the automatic creation of
@@ -39,8 +39,8 @@ FPGA-oriented transformations, which we describe here.
   is represented as data access nodes, pointing to off-chip memory by default. This off-chip accesses are undesirable, and in certain conditions can be completely avoided.
   This transformation converts two connected computations (nodes, map scopes) into two separate processing elements, with a stream connecting the results.
   The transformation performs checks similar to the previous one, and applyes only if the memory access patterns of the two computations match.
-* :py:func:`~dace.transformation.auto.fpga.fpga_global_to_local`: changes the storage of containers allocated in global memory to local memory when this is possible.
-* :py:func:`~dace.transformation.auto.fpga.fpga_rr_interleave_containers_to_banks`: interleaved global memory containers on the available off-chip memory banks.
+* :py:func:`~dace_fpga.transformations.fpga_auto_opt.fpga_global_to_local`: changes the storage of containers allocated in global memory to local memory when this is possible.
+* :py:func:`~dace_fpga.transformations.fpga_auto_opt.fpga_rr_interleave_containers_to_banks`: interleaved global memory containers on the available off-chip memory banks.
   Containers are allocated in a Round-Robin fashion.
 
 

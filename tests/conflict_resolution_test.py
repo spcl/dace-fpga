@@ -5,7 +5,7 @@
 
 import dace
 import numpy as np
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 
 
 def make_sdfg():

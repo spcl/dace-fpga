@@ -4,7 +4,7 @@ from dace.transformation.dataflow.map_unroll import MapUnroll
 from dace import dtypes, subsets
 import dace
 from dace import memlet
-from dace.fpga_testing import xilinx_test
+from dace_fpga.fpga_testing import xilinx_test
 import numpy as np
 from dace.sdfg import SDFG
 from dace.transformation.interstate import InlineSDFG

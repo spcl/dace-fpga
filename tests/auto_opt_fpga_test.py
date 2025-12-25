@@ -3,10 +3,10 @@
 
 import dace
 import numpy as np
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
 from dace.transformation.auto import auto_optimize as aopt
-from dace.transformation.auto import fpga as fpga_auto_opt
+from dace_fpga.transformations import fpga_auto_opt
 
 N = dace.symbol('N')
 

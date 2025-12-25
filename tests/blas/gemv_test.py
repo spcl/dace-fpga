@@ -5,8 +5,9 @@ import dace
 from dace.memlet import Memlet
 
 import dace.libraries.blas as blas
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 from dace.transformation.dataflow import StreamingMemory
 
 

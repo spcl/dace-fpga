@@ -8,12 +8,12 @@ import scipy
 
 import dace
 import dace.libraries.blas as blas
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 from dace.libraries.standard.memory import aligned_ndarray
 from dace.memlet import Memlet
 from dace.transformation.dataflow.streaming_memory import StreamingMemory
 from dace.transformation.interstate.sdfg_nesting import InlineSDFG
-from dace.transformation.interstate.fpga_transform_sdfg import FPGATransformSDFG
+from dace_fpga.transformations import FPGATransformSDFG
 
 
 def pure_graph(implementation, dtype, veclen):

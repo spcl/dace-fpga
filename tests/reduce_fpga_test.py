@@ -3,8 +3,8 @@
 # Tests reduce expansions for FPGA
 import dace
 import numpy as np
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
 
 
 def create_reduce_sdfg(wcr_str, reduction_axis, sdfg_name, input_data, output_data, dtype):

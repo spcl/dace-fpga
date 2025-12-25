@@ -3,9 +3,8 @@
 
 import dace
 import numpy as np
-import argparse
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
 
 N = dace.symbol('N')
 

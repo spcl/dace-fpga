@@ -1,7 +1,7 @@
 # Copyright 2019-2021 ETH Zurich and the DaCe authors. All rights reserved.
 import copy
 import dace
-from dace.fpga_testing import fpga_test
+from dace_fpga.fpga_testing import fpga_test
 
 
 def make_sdfg(tasklet_code=None, name="veclen_copy_conversion", dtype=dace.float32, veclen=16):

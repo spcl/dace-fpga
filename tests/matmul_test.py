@@ -113,35 +113,30 @@ def create_gemm_sdfg(sdfg_name,
 
     return sdfg
 
-from typing import Annotated
+
 # Define symbolic sizes for arbitrary inputs
 M = dace.symbol('M')
 K = dace.symbol('K')
 N = dace.symbol('N')
-S = dace.struct['S', dict(a=dace.int32)]
+
 
 # Map-Reduce version of matrix multiplication
 @dace.program
-def matmul(A: dace.float64[M, K], B: dace.float64[K, N], C: dace.float64[M, N], d: dace.vector[S, 4]):
+def matmul(A: dace.float64[M, K], B: dace.float64[K, N], C: dace.float64[M, N]):
     tmp = np.ndarray([M, N, K], dtype=A.dtype)
 
     # Multiply every pair of values to a large 3D temporary array
     for i, j, k in dace.map[0:M, 0:N, 0:K]:
         with dace.tasklet:
-            in_A <<= A[i, k]
-            in_B <<= B[k, j]
-            out >>= tmp[i, j, k]
+            in_A << A[i, k]
+            in_B << B[k, j]
+            out >> tmp[i, j, k]
 
             out = in_A * in_B
 
     # Sum last dimension of temporary array to obtain resulting matrix
     dace.reduce(lambda a, b: a + b, tmp, C, axis=2, identity=0)
 
-A = [...]
-B = [...]
-C = [...]
-for a, b, c, d in zip(A, B, C):
-    pass
 
 @fpga_test(assert_ii_1=False)
 def test_naive_matmul_fpga():

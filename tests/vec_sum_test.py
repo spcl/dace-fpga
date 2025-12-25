@@ -5,10 +5,12 @@ Can be used for simple vectorization test
 """
 
 import dace
-from dace.fpga_testing import fpga_test, xilinx_test
+from dace_fpga.fpga_testing import fpga_test, xilinx_test
 import numpy as np
 from dace.config import set_temporary
 import pytest
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.dataflow import Vectorization
 
 
 def run_vec_sum(vectorize_first: bool):
@@ -39,14 +41,14 @@ def run_vec_sum(vectorize_first: bool):
 
     if vectorize_first:
         transformations = [
-            dace.transformation.dataflow.vectorization.Vectorization,
-            dace.transformation.interstate.fpga_transform_sdfg.FPGATransformSDFG
+            Vectorization,
+            FPGATransformSDFG
         ]
         transformation_options = [{"propagate_parent": True, "postamble": False}, {}]
     else:
         transformations = [
-            dace.transformation.interstate.fpga_transform_sdfg.FPGATransformSDFG,
-            dace.transformation.dataflow.vectorization.Vectorization
+            FPGATransformSDFG,
+            Vectorization
         ]
         transformation_options = [{}, {"propagate_parent": True, "postamble": False}]
 

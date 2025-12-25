@@ -6,10 +6,12 @@ import numpy as np
 import dace as dc
 import pytest
 import argparse
-from dace.fpga_testing import fpga_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.fpga_testing import fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 from dace.transformation.dataflow import StreamingMemory, MapFusionVertical, StreamingComposition, PruneConnectors
-from dace.transformation.auto.auto_optimize import auto_optimize, fpga_auto_opt
+from dace.transformation.auto.auto_optimize import auto_optimize
+from dace_fpga.transformations import fpga_auto_opt
 from dace.autodiff import add_backward_pass
 
 N = dc.symbol('N', dtype=dc.int32)

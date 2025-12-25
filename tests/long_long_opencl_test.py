@@ -4,8 +4,9 @@ import dace.dtypes
 import numpy as np
 import dace as dc
 import argparse
-from dace.fpga_testing import intel_fpga_test
-from dace.transformation.interstate import FPGATransformSDFG, InlineSDFG
+from dace_fpga.fpga_testing import intel_fpga_test
+from dace_fpga.transformations import FPGATransformSDFG
+from dace.transformation.interstate import InlineSDFG
 
 N = dc.symbol('N', dtype=dc.int64)
 
