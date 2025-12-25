@@ -39,6 +39,41 @@ Using DaCe-FPGA
 - Customize code generation and hardware packages through the backends in [dace_fpga/codegen](dace_fpga/codegen) and runtime headers in [dace_fpga/runtime](dace_fpga/runtime).
 - See additional guidance on how to optimize DaCe programs for FPGAs in [docs/optimization.rst](docs/optimization.rst) and the [DaCe documentation](https://spcldace.readthedocs.io).
 
+Example
+-------
+
+```python
+import dace
+import dace_fpga  # Registers FPGA types, code generators, and transformations
+from dace_fpga.api import apply_fpga_transformations, auto_optimize_fpga
+
+import numpy as np
+
+N = dace.symbol('N')
+
+@dace.program
+def axpy(alpha: dace.float32, x: dace.float32[N], y: dace.float32[N]):
+		y[:] = alpha * x + y
+
+if __name__ == "__main__":
+	sdfg = axpy.to_sdfg()
+  
+  # Transform DaCe program to run on an FPGA
+  apply_fpga_transformations(sdfg)
+  
+  # Or, to apply FPGA transformations and auto-optimization passes, run:
+	# auto_optimize_fpga(sdfg, dace.DeviceType.FPGA)
+
+  # Compile ahead-of-time with symbolic size N
+  compiled_sdfg = sdfg.compile()
+
+  # Initialize and run compiled program
+  # (either directly or loaded from file, see DaCe docs)
+	x = np.random.rand(1024).astype(np.float32)
+	y = np.random.rand(1024).astype(np.float32)
+	compiled_sdfg(np.float32(2.0), x, y)
+```
+
 Testing
 -------
 
