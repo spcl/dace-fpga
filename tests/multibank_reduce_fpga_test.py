@@ -6,6 +6,7 @@ from dace_fpga.fpga_testing import xilinx_test
 import numpy as np
 import pytest
 from dace.config import set_temporary
+from dace_fpga import api
 
 # A test checking wcr-reduction with HBM/DDR arrays as inputs and output
 
@@ -47,7 +48,7 @@ def create_multibank_reduce_sdfg(
     state.add_memlet_path(read_in2, outer_entry, map_entry, tasklet, memlet=tmp_in2_memlet, dst_conn="__in2")
     state.add_memlet_path(tasklet, map_exit, outer_exit, out_write, memlet=tmp_out_memlet, src_conn="__out")
 
-    sdfg.apply_fpga_transformations()
+    api.apply_fpga_transformations(sdfg)
     return sdfg
 
 

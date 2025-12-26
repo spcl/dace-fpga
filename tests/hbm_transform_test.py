@@ -11,6 +11,7 @@ import dace
 from dace_fpga.transformations import HbmTransform
 from dace.transformation.interstate import NestSDFG
 from functools import reduce
+from dace_fpga import api
 
 
 def set_assignment(sdfg: SDFG, assignments: List[Tuple[str, str, str]]):
@@ -54,7 +55,7 @@ def _exec_hbmtransform(sdfg_source, assign, nest=False, num_apply=1, apply_to=No
         for _, desc in sdfg.arrays.items():
             if desc.storage == dtypes.StorageType.FPGA_Global:
                 desc.storage = dtypes.StorageType.Default
-    sdfg.apply_fpga_transformations(validate=False)
+    api.apply_fpga_transformations(sdfg, validate=False)
     sdfg.apply_transformations_repeated(InlineSDFG, validate=False)
     csdfg = sdfg.compile()
     return (csdfg, sdfg)
@@ -273,11 +274,11 @@ def test_axpy_inconsistent_no_apply():
 
 if __name__ == "__main__":
     test_axpy_unroll_3(None)
-    test_axpy_unroll_1(None)
-    test_axpy_unroll_mixed(None)
-    test_nd_split(None)
-    test_nd_split_inner(None)
-    test_gemv_blas_1(None)
-    test_gemv_blas_2(None)
-    test_axpy_inconsistent_no_apply(None)
-    test_multiple_applications(None)
+    # test_axpy_unroll_1(None)
+    # test_axpy_unroll_mixed(None)
+    # test_nd_split(None)
+    # test_nd_split_inner(None)
+    # test_gemv_blas_1(None)
+    # test_gemv_blas_2(None)
+    # test_axpy_inconsistent_no_apply(None)
+    # test_multiple_applications(None)

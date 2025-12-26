@@ -56,7 +56,7 @@ jobs:
         export ALTERAOCLSDKROOT=$INTELFPGAOCLSDKROOT
         export AOCL_BOARD_PACKAGE_ROOT=/opt/intelFPGA_pro/19.1/hld/board/a10_ref
         export PATH=$INTELFPGAOCLSDKROOT/bin:$PATH
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$AOCL_BOARD_PACKAGE_ROOT/linux64/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$AOCL_BOARD_PACKAGE_ROOT/linux64/lib:$INTELFPGAOCLSDKROOT/host/linux64/lib
         export QUARTUS_ROOTDIR_OVERRIDE=/opt/intelFPGA_pro/19.1/quartus
         export LD_PRELOAD=/lib/x86_64-linux-gnu/libstdc++.so.6   # Work around dependency issues
 

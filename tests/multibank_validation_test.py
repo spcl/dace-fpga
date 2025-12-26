@@ -6,6 +6,7 @@ import dace
 import numpy as np
 from dace import subsets
 from dace.sdfg import nodes as nd
+from dace_fpga import api
 
 # A test to check the changes to the validation required for the support for HBM and DDR
 
@@ -40,7 +41,7 @@ def multibank_deep_scope(mem_type):
     sdfg.arrays["output"].location["memorytype"] = mem_type
     sdfg.arrays["input"].location["bank"] = "0:12"
     sdfg.arrays["output"].location["bank"] = "12:24"
-    sdfg.apply_fpga_transformations(validate=False)
+    api.apply_fpga_transformations(sdfg, validate=False)
     sdfg.validate()
 
 
@@ -59,7 +60,7 @@ def multibank_multi_tasklet(mem_type):
     sdfg.arrays["output"].location["memorytype"] = mem_type
     sdfg.arrays["input"].location["bank"] = "0:12"
     sdfg.arrays["output"].location["bank"] = "12:24"
-    sdfg.apply_fpga_transformations(validate=False)
+    api.apply_fpga_transformations(sdfg, validate=False)
     assert_validation_failure(sdfg, InvalidSDFGNodeError)
 
     @dace.program
@@ -74,7 +75,7 @@ def multibank_multi_tasklet(mem_type):
     sdfg.arrays["output"].location["memorytype"] = mem_type
     sdfg.arrays["input"].location["bank"] = "0:2"
     sdfg.arrays["output"].location["bank"] = "2:4"
-    sdfg.apply_fpga_transformations()
+    api.apply_fpga_transformations(sdfg)
     sdfg.validate()
 
 

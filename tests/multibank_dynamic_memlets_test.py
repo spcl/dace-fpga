@@ -4,6 +4,7 @@ import dace
 from dace import subsets as sbs, dtypes, memlet as mem
 from dace_fpga.fpga_testing import xilinx_test
 import numpy as np
+from dace_fpga import api
 
 # Checks dynamic access and dynamic loop bounds from multibank HBM and DDR
 
@@ -38,7 +39,7 @@ def create_dynamic_memlet_sdfg(mem_type):
                           memlet=mem.Memlet("y[k, i]", dynamic=True),
                           src_conn="_out")
     state.add_memlet_path(xarr, map_enter, arr_map_enter, memlet=mem.Memlet("x[1, 0]"), dst_conn="_dynbound")
-    sdfg.apply_fpga_transformations()
+    api.apply_fpga_transformations(sdfg)
     return sdfg
 
 

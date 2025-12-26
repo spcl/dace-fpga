@@ -4,6 +4,7 @@ from dace_fpga.fpga_testing import xilinx_test
 from dace import subsets as sbs, dtypes, memlet as mem
 from dace import subsets
 import numpy as np
+from dace_fpga import api
 
 # A test checking Multibank HBM/DDR in the context of nested maps and nested sdfgs
 # Note, usually there are only 4 ddr banks but much more hmb banks.
@@ -51,7 +52,7 @@ def create_deeply_nested_sdfg(mem_type):
                           yarr,
                           memlet=mem.Memlet.from_array("y", sdfg.arrays["y"]),
                           src_conn="xout")
-    sdfg.apply_fpga_transformations()
+    api.apply_fpga_transformations(sdfg)
 
     return sdfg
 

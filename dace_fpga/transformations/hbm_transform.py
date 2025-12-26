@@ -170,9 +170,10 @@ class HbmTransform(transformation.SingleStateTransformation):
                        expr_index: int,
                        sdfg: SDFG,
                        permissive: bool = False) -> bool:
-
+        from dace_fpga import api  # Avoid import loop
+        
         # This can only be applied when this state can run on FPGA
-        if not isinstance(graph, SDFGState) or not helpers.can_run_state_on_fpga(graph):
+        if not isinstance(graph, SDFGState) or not api.can_run_state_on_fpga(graph):
             return False
 
         map_entry = self._map_entry

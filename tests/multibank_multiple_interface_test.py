@@ -9,6 +9,7 @@ import numpy as np
 from dace.sdfg import SDFG
 from dace.transformation.interstate import InlineSDFG
 from dace.config import set_temporary
+from dace_fpga import api
 # Checks multiple interfaces attached to the same HBM/DDR-bank.
 
 
@@ -30,7 +31,7 @@ def four_interface_to_2_banks(mem_type, decouple_interfaces):
     state.add_memlet_path(acc_read1, m1_in, t1, memlet=memlet.Memlet("a[1, 0]"), dst_conn="_x2")
     state.add_memlet_path(t1, m1_out, acc_write1, memlet=memlet.Memlet("a[0, 1]"), src_conn="_y1")
 
-    sdfg.apply_fpga_transformations()
+    api.apply_fpga_transformations(sdfg)
     assert sdfg.apply_transformations(InlineSDFG) == 1
     assert sdfg.apply_transformations(MapUnroll) == 1
     for node in sdfg.states()[0].nodes():

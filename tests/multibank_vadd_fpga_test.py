@@ -5,6 +5,7 @@ from dace_fpga.fpga_testing import xilinx_test
 import dace
 import numpy as np
 from dace.transformation.interstate import InlineSDFG
+from dace_fpga import api
 
 # A test executing vector addition with multidimensional arrays using HBM/DDR.
 
@@ -66,7 +67,7 @@ def create_vadd_multibank_sdfg(bank_count_per_array=2,
         state.add_memlet_path(read_in2, outer_entry, map_entry, tasklet, memlet=tmp_in2_memlet, dst_conn="__in2")
         state.add_memlet_path(tasklet, map_exit, outer_exit, out_write, memlet=tmp_out_memlet, src_conn="__out")
 
-    sdfg.apply_fpga_transformations()
+    api.apply_fpga_transformations(sdfg)
     sdfg.apply_transformations(InlineSDFG)
     return sdfg
 
