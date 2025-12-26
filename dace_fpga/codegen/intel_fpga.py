@@ -783,7 +783,7 @@ __kernel void \\
             if vconn in inout or in_memlet.data is None:
                 continue
             desc = sdfg.arrays[in_memlet.data]
-            ptrname = cpp.ptr(in_memlet.data, desc, sdfg, self._frame)
+            ptrname = self.ptr(in_memlet.data, desc, sdfg, self._frame)
             defined_type, defined_ctype = self._dispatcher.defined_vars.get(ptrname, 1)
 
             #change c type to opencl type
@@ -833,7 +833,7 @@ __kernel void \\
         for _, uconn, _, _, out_memlet in state.out_edges(node):
             if out_memlet.data is not None:
                 desc = sdfg.arrays[out_memlet.data]
-                ptrname = cpp.ptr(out_memlet.data, desc, sdfg, self._frame)
+                ptrname = self.ptr(out_memlet.data, desc, sdfg, self._frame)
                 defined_type, defined_ctype = self._dispatcher.defined_vars.get(ptrname, 1)
 
                 #change c type to opencl type
@@ -899,7 +899,7 @@ __kernel void \\
         """
         name = node.data
         nodedesc = node.desc(sdfg)
-        ptrname = cpp.ptr(name, nodedesc, sdfg, self._frame)
+        ptrname = self.ptr(name, nodedesc, sdfg, self._frame)
         if self._dispatcher.defined_vars.has(ptrname):
             return  # View was already allocated
 
@@ -921,7 +921,7 @@ __kernel void \\
             atype = ocl_types.dtype_to_ocl_str(dtypes.pointer(nodedesc.dtype)) + " restrict"
             aname = ptrname
             viewed_desc = sdfg.arrays[edge.data.data]
-            eptr = cpp.ptr(edge.data.data, viewed_desc, sdfg, self._frame)
+            eptr = self.ptr(edge.data.data, viewed_desc, sdfg, self._frame)
             defined_type, _ = self._dispatcher.defined_vars.get(eptr, 0)
             # Register defined variable
             self._dispatcher.defined_vars.add(aname, defined_type, atype, allow_shadowing=True)
@@ -989,7 +989,7 @@ __kernel void \\
             data_name = outer_stream_node_trace[0][0][1 if is_output else 0].label
             is_global = True
 
-        data_name = cpp.ptr(data_name, data_desc, sdfg, self._frame)
+        data_name = self.ptr(data_name, data_desc, sdfg, self._frame)
 
         def_type, ctypedef = self._dispatcher.defined_vars.get(data_name, is_global=is_global)
         if def_type == DefinedType.Scalar:
@@ -1301,7 +1301,7 @@ __kernel void \\
     def write_and_resolve_expr(self, sdfg, memlet, nc, outname, inname, indices=None, dtype=None):
         desc = sdfg.arrays[memlet.data]
         offset = cpp.cpp_offset_expr(desc, memlet.subset, None)
-        ptrname = cpp.ptr(memlet.data, desc, sdfg, self._frame)
+        ptrname = self.ptr(memlet.data, desc, sdfg, self._frame)
         defined_type, _ = self._dispatcher.defined_vars.get(ptrname)
         return self.make_write(defined_type, dtype, ptrname, ptrname, offset, inname, memlet.wcr, False, 1)
 

@@ -23,7 +23,7 @@ from dace.sdfg.state import ControlFlowRegion, StateSubgraphView
 import dace.sdfg.utils as utils
 from dace.symbolic import evaluate
 from collections import defaultdict
-from dace_fpga.opencl_types import _OCL_TYPES
+from dace_fpga import opencl_types
 
 # Lists allowed modules and maps them to OpenCL
 _OPENCL_ALLOWED_MODULES = {"builtins": "", "dace": "", "math": ""}
@@ -69,7 +69,7 @@ class OpenCLUnparser(cppunparse.CPPUnparser):
                         if self.language == dace.dtypes.Language.OpenCL and (inferred_type is not None
                                                                              and inferred_type.veclen > 1):
                             # if the veclen is greater than one, this should be defined with a vector data type
-                            self.write("{}{} ".format(dace.dtypes._OCL_VECTOR_TYPES[inferred_type.type],
+                            self.write("{}{} ".format(opencl_types._OCL_VECTOR_TYPES[inferred_type.type],
                                                       inferred_type.veclen))
                         elif self.language == dace.dtypes.Language.OpenCL:
                             self.write(opencl_types._OCL_TYPES[inferred_type.type] + " ")
