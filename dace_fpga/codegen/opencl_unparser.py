@@ -11,7 +11,7 @@ from dace.codegen.prettycode import CodeIOStream
 from dace.codegen.targets import cpp
 from dace_fpga.codegen import fpga
 from dace.codegen.common import codeblock_to_cpp
-from dace.codegen.tools.type_inference import infer_expr_type
+from dace.codegen.tools.type_inference import infer_expr_type, infer_types
 from dace.frontend.python.astutils import rname, unparse, evalnode
 from dace.frontend import operations
 from dace.sdfg import find_input_arraynode, find_output_arraynode
@@ -24,6 +24,67 @@ import dace.sdfg.utils as utils
 from dace.symbolic import evaluate
 from collections import defaultdict
 
+# Lists allowed modules and maps them to OpenCL
+_OPENCL_ALLOWED_MODULES = {"builtins": "", "dace": "", "math": ""}
+
+class OpenCLUnparser(cppunparse.CPPUnparser):
+    """Methods in this class recursively traverse an AST and
+    output C++ source code for the abstract syntax; original formatting
+    is disregarded. """
+
+    def _Assign(self, t):
+        self.fill()
+
+        # Handle the case of a tuple output
+        if len(t.targets) > 1:
+            self.dispatch_lhs_tuple(t.targets)
+        else:
+            target = t.targets[0]
+            if isinstance(target, ast.Tuple):
+                if len(target.elts) > 1:
+                    self.dispatch_lhs_tuple(target.elts)
+                    target = None
+                else:
+                    target = target.elts[0]
+
+            if target and not isinstance(target, (ast.Subscript, ast.Attribute)) and not self.locals.is_defined(
+                    target.id, self._indent):
+
+                # if the target is already defined, do not redefine it
+                if self.defined_symbols is None or target.id not in self.defined_symbols:
+                    # we should try to infer the type
+                    if self.type_inference is True:
+                        # Perform type inference
+                        # Build dictionary with symbols
+                        def_symbols = {}
+                        def_symbols.update(self.locals.get_name_type_associations())
+                        def_symbols.update(self.defined_symbols)
+                        inferred_symbols = infer_types(t, def_symbols)
+                        inferred_type = inferred_symbols[target.id]
+                        if inferred_type is None:
+                            raise RuntimeError(f"Failed to infer type of \"{target.id}\".")
+
+                        self.locals.define(target.id, t.lineno, self._indent, inferred_type)
+                        if self.language == dace.dtypes.Language.OpenCL and (inferred_type is not None
+                                                                             and inferred_type.veclen > 1):
+                            # if the veclen is greater than one, this should be defined with a vector data type
+                            self.write("{}{} ".format(dace.dtypes._OCL_VECTOR_TYPES[inferred_type.type],
+                                                      inferred_type.veclen))
+                        elif self.language == dace.dtypes.Language.OpenCL:
+                            self.write(dace.dtypes._OCL_TYPES[inferred_type.type] + " ")
+                        else:
+                            self.write(dace.dtypes._CTYPES[inferred_type.type] + " ")
+                    else:
+                        raise NotImplementedError("Type inference is required for OpenCL code generation")
+
+            # dispatch target
+            if target:
+                self.dispatch(target)
+
+        self.write(" = ")
+        self.dispatch(t.value)
+        #self.dtype = inferred_type
+        self.write(';')
 
 
 class OpenCLDaceKeywordRemover(cpp.DaCeKeywordRemover):
@@ -54,6 +115,7 @@ class OpenCLDaceKeywordRemover(cpp.DaCeKeywordRemover):
         super().__init__(sdfg, memlets, sdfg.constants, codegen)
 
     def visit_Assign(self, node):
+        from dace_fpga.codegen.intel_fpga import REDUCTION_TYPE_TO_PYEXPR
         target = rname(node.targets[0])
         if target not in self.memlets:
             # If we don't have a memlet for this target, it could be the case
@@ -227,8 +289,8 @@ class OpenCLDaceKeywordRemover(cpp.DaCeKeywordRemover):
         attrname = rname(node)
         module_name = attrname[:attrname.rfind(".")]
         func_name = attrname[attrname.rfind(".") + 1:]
-        if module_name in dtypes._OPENCL_ALLOWED_MODULES:
-            cppmodname = dtypes._OPENCL_ALLOWED_MODULES[module_name]
+        if module_name in _OPENCL_ALLOWED_MODULES:
+            cppmodname = _OPENCL_ALLOWED_MODULES[module_name]
             return ast.copy_location(ast.Name(id=(cppmodname + func_name), ctx=ast.Load), node)
         return self.generic_visit(node)
 

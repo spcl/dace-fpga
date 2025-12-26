@@ -29,7 +29,7 @@ from dace.sdfg.state import ControlFlowRegion, StateSubgraphView
 import dace.sdfg.utils as utils
 from dace.symbolic import evaluate
 from collections import defaultdict
-from dace_fpga.codegen.opencl_unparser import OpenCLDaceKeywordRemover
+from dace_fpga.codegen.opencl_unparser import OpenCLDaceKeywordRemover, OpenCLUnparser
 from dace_fpga import opencl_types as ocl_types
 
 REDUCTION_TYPE_TO_HLSLIB = {
@@ -392,7 +392,8 @@ DACE_EXPORTED int __dace_exit_intel_fpga({sdfg_state_name} *__state) {{
                 else:
                     # use max/min opencl builtins
                     return "{}[{}] = {}{}({}[{}],{});".format(
-                        write_expr, index, ("f" if ocl_types.dtype_to_ocl_str(dtype) == "float" or ocl_types.dtype_to_ocl_str(dtype) == "double" else ""),
+                        write_expr, index, ("f" if ocl_types.dtype_to_ocl_str(dtype) == "float"
+                                            or ocl_types.dtype_to_ocl_str(dtype) == "double" else ""),
                         REDUCTION_TYPE_TO_HLSLIB[redtype], write_expr, index, read_expr)
             else:
                 if is_unpack:
@@ -415,15 +416,16 @@ DACE_EXPORTED int __dace_exit_intel_fpga({sdfg_state_name} *__state) {{
                     return "{} = {} {} {};".format(write_expr, write_expr, REDUCTION_TYPE_TO_HLSLIB[redtype], read_expr)
                 else:
                     # use max/min opencl builtins
-                    return "{} = {}{}({},{});".format(
-                        write_expr, ("f" if ocl_types.dtype_to_ocl_str(dtype) == "float" or ocl_types.dtype_to_ocl_str(dtype) == "double" else ""),
-                        REDUCTION_TYPE_TO_HLSLIB[redtype], write_expr, read_expr)
+                    return "{} = {}{}({},{});".format(write_expr,
+                                                      ("f" if ocl_types.dtype_to_ocl_str(dtype) == "float"
+                                                       or ocl_types.dtype_to_ocl_str(dtype) == "double" else ""),
+                                                      REDUCTION_TYPE_TO_HLSLIB[redtype], write_expr, read_expr)
             else:
                 if is_unpack:
                     ocltype = ocl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype))
                     self.converters_to_generate.add((False, ocltype, packing_factor))
-                    return "unpack_{}{}({}, {});".format(
-                        ocl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype)), packing_factor, read_expr, var_name)
+                    return "unpack_{}{}({}, {});".format(ocl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype)),
+                                                         packing_factor, read_expr, var_name)
                 else:
                     return "{} = {};".format(var_name, read_expr)
         raise NotImplementedError("Unimplemented write type: {}".format(defined_type))
@@ -748,8 +750,8 @@ __kernel void \\
         arguments = [f'{atype} {aname}' for atype, aname, _ in memlet_references]
         fsyms = node.sdfg.used_symbols(all_symbols=False, keep_defined_in_mapping=True)
         arguments += [
-            f'{ocl_types.dtype_to_ocl_str(node.sdfg.symbols[aname].dtype)} {aname}' for aname in sorted(node.symbol_mapping.keys())
-            if aname in fsyms and aname not in sdfg.constants
+            f'{ocl_types.dtype_to_ocl_str(node.sdfg.symbols[aname].dtype)} {aname}'
+            for aname in sorted(node.symbol_mapping.keys()) if aname in fsyms and aname not in sdfg.constants
         ]
         arguments = ', '.join(arguments)
         function_header = f'void {sdfg_label}({arguments}) {{'
@@ -820,7 +822,7 @@ __kernel void \\
                     self._dispatcher.defined_vars.add(vconn, defined_type, typedef, allow_shadowing=True)
                 else:
                     # otherwise, pass it as a pointer (references do not exist in C99)
-                    ref = (typedef, vconn, cpp.cpp_ptr_expr(sdfg, in_memlet, defined_type, codegen=self._frame))
+                    ref = (typedef, vconn, cpp.cpp_ptr_expr(sdfg, in_memlet, defined_type, codegen=self))
                 self._dispatcher.defined_vars.add(vconn, defined_type, typedef, allow_shadowing=True)
                 memlet_references.append(ref)
             else:
@@ -866,7 +868,7 @@ __kernel void \\
                     if defined_type is not DefinedType.Pointer:
                         typedef = typedef + "*"
                     memlet_references.append(
-                        (typedef, uconn, cpp.cpp_ptr_expr(sdfg, out_memlet, defined_type, codegen=self._frame)))
+                        (typedef, uconn, cpp.cpp_ptr_expr(sdfg, out_memlet, defined_type, codegen=self)))
                     self._dispatcher.defined_vars.add(uconn, DefinedType.Pointer, typedef, allow_shadowing=True)
                 else:
                     memlet_references.append(
@@ -1253,13 +1255,13 @@ __kernel void \\
 
             if rk is not None:
                 result = StringIO()
-                cppunparse.CPPUnparser(rk,
-                                       ldepth + 1,
-                                       locals,
-                                       result,
-                                       defined_symbols=defined_symbols,
-                                       type_inference=True,
-                                       language=dtypes.Language.OpenCL)
+                OpenCLUnparser(rk,
+                               ldepth + 1,
+                               locals,
+                               result,
+                               defined_symbols=defined_symbols,
+                               type_inference=True,
+                               language=dtypes.Language.OpenCL)
                 callsite_stream.write(result.getvalue(), cfg, state_id, node)
 
     def generate_constants(self, sdfg, callsite_stream):
@@ -1348,7 +1350,7 @@ __kernel void \\
                                              sdfg: SDFG):
         isvar = dt.Scalar(dtype)
         if self._in_device_code:
-        #if schedule in (dtypes.ScheduleType.FPGA_Device, dtypes.ScheduleType.FPGA_Multi_Pumped):
+            #if schedule in (dtypes.ScheduleType.FPGA_Device, dtypes.ScheduleType.FPGA_Multi_Pumped):
             # Emit OpenCL type
             callsite_stream.write(f'{ocl_types.dtype_to_ocl_str(dtype)} {name};\n', sdfg)
         else:

@@ -7,6 +7,7 @@ from dace_fpga.fpga_testing import fpga_test
 from dace_fpga.transformations import FPGATransformSDFG
 from dace.transformation.auto import auto_optimize as aopt
 from dace_fpga.transformations import fpga_auto_opt
+from dace_fpga import api
 
 N = dace.symbol('N')
 
@@ -29,7 +30,7 @@ def test_global_to_local():
 
     sdfg = global_to_local.to_sdfg()
 
-    aopt.auto_optimize(sdfg, dace.DeviceType.FPGA)
+    api.auto_optimize_fpga(sdfg, dace.DeviceType.FPGA)
 
     # Check that transformation has been actually applied
     # There should be only one transient among the sdfg arrays and it must have Local Storage Type
@@ -89,5 +90,5 @@ def test_rr_interleave():
 
 
 if __name__ == "__main__":
-    test_global_to_local(8)
-    test_rr_interleave()
+    test_global_to_local(None)
+    test_rr_interleave(None)

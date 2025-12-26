@@ -379,7 +379,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                                 memlet,
                                                 defined_type,
                                                 is_write=True,
-                                                codegen=self._frame,
+                                                codegen=self,
                                                 decouple_array_interface=self._decouple_array_interfaces), indices)
         else:
             ptr = cpp.cpp_ptr_expr(sdfg,
@@ -387,7 +387,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                    defined_type,
                                    indices=indices,
                                    is_write=True,
-                                   codegen=self._frame,
+                                   codegen=self,
                                    decouple_array_interface=self._decouple_array_interfaces)
 
         if isinstance(dtype, dtypes.pointer):

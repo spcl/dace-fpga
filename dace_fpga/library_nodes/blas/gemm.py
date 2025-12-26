@@ -6,6 +6,7 @@ from dace.libraries.blas.nodes.matmul import _get_matmul_operands
 import numpy as np
 
 from dace.libraries.blas.nodes.gemm import Gemm
+from dace_fpga import api
 
 
 @dace.library.register_expansion(Gemm, "FPGA1DSystolic")
@@ -257,7 +258,7 @@ if tm * {T} + m  < {M}  and  n0 * {P} + n1 < {N} :
             # It must be computed by considering T and the latency needed to consolidate a partial result
             # (which is the latency of the add + latency for reading and writing to BRAM).
 
-            entry_pipeline, exit_pipeline = state.add_pipeline("compute_and_drain", {
+            entry_pipeline, exit_pipeline = api.add_pipeline(state, "compute_and_drain", {
                 "n0": f"0:ceiling({N}/{P})",
                 "tm": f"0:ceiling({M}/{T})",
                 "k": f"0:{K}",
