@@ -1332,3 +1332,9 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         """
         return self.make_write(DefinedType.Pointer, dst_dtype, None, "&" + dst_expr, None, src_expr, None,
                                dst_dtype.veclen < src_dtype.veclen, src_dtype.veclen)
+
+    def emit_interstate_variable_declaration(self, name: str, dtype: dtypes.typeclass, callsite_stream: CodeIOStream,
+                                             sdfg: SDFG):
+        isvar = dt.Scalar(dtype)
+        callsite_stream.write('%s;\n' % (isvar.as_arg(with_types=True, name=name)), sdfg)
+        self._frame.dispatcher.defined_vars.add(name, DefinedType.Scalar, dtype.ctype)
