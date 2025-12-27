@@ -19,9 +19,12 @@ dtypes.SCOPEDEFAULT_SCHEDULE[dtypes.ScheduleType.FPGA_Multi_Pumped] = dtypes.Sch
 dtypes.ScheduleType.register('Unrolled')
 dtypes.SCOPEDEFAULT_SCHEDULE[dtypes.ScheduleType.Unrolled] = dtypes.ScheduleType.CPU_Multicore
 
+dtypes.InstrumentationType.register('FPGA')
+
 # Register FPGA code generation targets and DefinedTypes
 dispatcher.DefinedType.register('FPGA_ShiftRegister')  # A shift-register object used in FPGA code generation
 from dace_fpga.codegen import intel_fpga, rtl, unroller, xilinx
+from dace_fpga import instrumentation
 
 # Register FPGA-specific transformations and passes
 from dace_fpga import transformations

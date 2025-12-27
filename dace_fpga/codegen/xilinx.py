@@ -372,7 +372,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         Emits a conflict resolution call from a memlet.
         """
         redtype = operations.detect_reduction_type(memlet.wcr, openmp=True)
-        ptrname = self.ptr(memlet.data, sdfg.arrays[memlet.data], sdfg, self._frame)
+        ptrname = self.ptr(memlet.data, sdfg.arrays[memlet.data], sdfg)
         defined_type, _ = self._dispatcher.defined_vars.get(ptrname)
         if isinstance(indices, str):
             ptr = '%s + %s' % (cpp.cpp_ptr_expr(sdfg,
@@ -1207,7 +1207,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
 
     def generate_memlet_definition(self, sdfg, cfg, dfg, state_id, src_node, dst_node, edge, callsite_stream):
         memlet = edge.data
-        ptrname = self.ptr(memlet.data, sdfg.arrays[memlet.data], sdfg, self._frame)
+        ptrname = self.ptr(memlet.data, sdfg.arrays[memlet.data], sdfg)
 
         if (self._dispatcher.defined_vars.get(ptrname)[0] == DefinedType.FPGA_ShiftRegister):
             raise NotImplementedError("Shift register for Xilinx NYI")
@@ -1240,7 +1240,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
             if not self._decouple_array_interfaces and vconn in inout:
                 # Only one interface will be generated
                 continue
-            ptrname = self.ptr(in_memlet.data, sdfg.arrays[in_memlet.data], sdfg, self._frame)
+            ptrname = self.ptr(in_memlet.data, sdfg.arrays[in_memlet.data], sdfg)
             is_memory_interface = (self._dispatcher.defined_vars.get(ptrname, 1)[0] == DefinedType.ArrayInterface)
             desc = sdfg.arrays[in_memlet.data]
             if is_memory_interface:
@@ -1293,7 +1293,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                              uconn,
                                              conntype=node.out_connectors[uconn],
                                              is_write=True)
-            ptrname = self.ptr(out_memlet.data, sdfg.arrays[out_memlet.data], sdfg, self._frame)
+            ptrname = self.ptr(out_memlet.data, sdfg.arrays[out_memlet.data], sdfg)
             is_memory_interface = (self._dispatcher.defined_vars.get(ptrname, 1)[0] == DefinedType.ArrayInterface)
 
             if is_memory_interface:

@@ -11,6 +11,7 @@ from dace.libraries.stencil.subscript_converter import SubscriptConverter
 from dace.libraries.stencil._common import *
 from dace.libraries.stencil.stencil import Stencil
 from dace import library
+from dace_fpga import nodes as fpga_nodes
 
 
 @library.register_expansion(Stencil, 'intel_fpga')
@@ -88,17 +89,17 @@ class ExpandStencilIntelFPGA(dace.library.ExpandTransformation):
 
         # Manually add pipeline entry and exit nodes
         pipeline_range = dace.properties.SubsetProperty.from_string(', '.join(iterators.values()))
-        pipeline = dace.sdfg.nodes.PipelineScope("compute_" + node.label,
-                                                 list(iterators.keys()),
-                                                 pipeline_range,
-                                                 dace.dtypes.ScheduleType.FPGA_Device,
-                                                 False,
-                                                 init_size=init_size_max,
-                                                 init_overlap=False,
-                                                 drain_size=init_size_max,
-                                                 drain_overlap=True)
-        entry = dace.sdfg.nodes.PipelineEntry(pipeline)
-        exit = dace.sdfg.nodes.PipelineExit(pipeline)
+        pipeline = fpga_nodes.PipelineScope("compute_" + node.label,
+                                            list(iterators.keys()),
+                                            pipeline_range,
+                                            dace.dtypes.ScheduleType.FPGA_Device,
+                                            False,
+                                            init_size=init_size_max,
+                                            init_overlap=False,
+                                            drain_size=init_size_max,
+                                            drain_overlap=True)
+        entry = fpga_nodes.PipelineEntry(pipeline)
+        exit = fpga_nodes.PipelineExit(pipeline)
         state.add_nodes_from([entry, exit])
 
         # Add nested SDFG to do 1) shift buffers 2) read from input 3) compute
