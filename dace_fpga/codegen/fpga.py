@@ -2470,16 +2470,19 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         :return: C-compatible name that can be used to access the data.
         """
         if is_fpga_array(desc):
-            return fpga_ptr(
-                name,
-                desc,
-                sdfg,
-                #memlet.subset,
-                #is_write,
-                #dispatcher,
-                #ancestor,
-                #defined_type == DefinedType.ArrayInterface,
-                decouple_array_interfaces=self._decouple_array_interfaces)
+            try:
+                return fpga_ptr(
+                    name,
+                    desc,
+                    sdfg,
+                    #memlet.subset,
+                    #is_write,
+                    #dispatcher,
+                    #ancestor,
+                    #defined_type == DefinedType.ArrayInterface,
+                    decouple_array_interfaces=self._decouple_array_interfaces)
+            except ValueError:
+                pass
         return cpp.ptr(name, desc, sdfg, self._frame)
 
     def make_ptr_assignment(self, *args, **kwargs):
