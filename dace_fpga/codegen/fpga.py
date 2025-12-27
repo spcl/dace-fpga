@@ -390,7 +390,7 @@ class FPGACodeGen(TargetCodeGenerator):
         # a kernel is instrumented
         self._kernel_instrumentation_index: int = 0
 
-        self._decouple_array_interfaces = False
+        self._decouple_array_interfaces = False  # Set by deriving class if needed
         # Register additional FPGA dispatchers
         self._dispatcher.register_map_dispatcher(
             [dtypes.ScheduleType.FPGA_Device, dtypes.ScheduleType.FPGA_Multi_Pumped], self)
@@ -2469,7 +2469,17 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         :param sdfg: SDFG the data belongs to.
         :return: C-compatible name that can be used to access the data.
         """
-        # TODO: Implement with fpga_ptr
+        if is_fpga_array(desc):
+            return fpga_ptr(
+                name,
+                desc,
+                sdfg,
+                #memlet.subset,
+                #is_write,
+                #dispatcher,
+                #ancestor,
+                #defined_type == DefinedType.ArrayInterface,
+                decouple_array_interfaces=self._decouple_array_interfaces)
         return cpp.ptr(name, desc, sdfg, self._frame)
 
     def make_ptr_assignment(self, *args, **kwargs):
@@ -2549,7 +2559,8 @@ __state->report.add_completion("{kernel_name}", "FPGA", 1e-3 * event_start, 1e-3
             typedef_and_ref, pointer_name, expr = cpp.emit_memlet_reference(self._dispatcher, sdfg, mmlt, pointer_name,
                                                                             conntype, self, ancestor, is_write)
 
-        if (not device_code and  defined_type != DefinedType.ArrayInterface and desc.storage == dace.StorageType.FPGA_Global and not isinstance(desc, dt.Scalar)):
+        if (not device_code and defined_type != DefinedType.ArrayInterface
+                and desc.storage == dace.StorageType.FPGA_Global and not isinstance(desc, dt.Scalar)):
             # This is a device buffer accessed on the host.
             # Cannot be accessed with offset different than zero. Check this if we can:
             if (isinstance(offset, int) and int(offset) != 0) or (isinstance(offset, str) and offset.isnumeric()
