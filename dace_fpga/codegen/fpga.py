@@ -2,6 +2,7 @@
 
 import ast
 import os
+import functools
 from six import StringIO
 import collections
 import itertools
@@ -31,6 +32,7 @@ from collections import defaultdict
 from dace_fpga.codegen import fpga
 from dace_fpga import nodes as fpga_nodes
 from dace_fpga import opencl_types as ocl_types
+from dace.sdfg.validation import validate_memlet_data
 
 if TYPE_CHECKING:
     from dace.codegen.targets.framecode import DaCeCodeGenerator
@@ -1894,8 +1896,379 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                 callsite_stream.write("}")
 
         else:
+            self._emit_devicelevel_copy(sdfg, cfg, state_id, src_node, src_storage, dst_node, dst_storage, dst_schedule,
+                                        edge, dfg, callsite_stream)
 
-            self.generate_memlet_definition(sdfg, cfg, dfg, state_id, src_node, dst_node, edge, callsite_stream)
+    def _emit_devicelevel_copy(
+        self,
+        sdfg: SDFG,
+        cfg: ControlFlowRegion,
+        state_id: int,
+        src_node: nodes.Node,
+        src_storage: dtypes.StorageType,
+        dst_node: nodes.Node,
+        dst_storage: dtypes.StorageType,
+        dst_schedule: dtypes.ScheduleType,
+        edge: Tuple[nodes.Node, Optional[str], nodes.Node, Optional[str], memlet.Memlet],
+        dfg: StateSubgraphView,
+        stream: CodeIOStream,
+    ) -> None:
+        u, uconn, v, vconn, memlet = edge
+        orig_vconn = vconn
+
+        # Determine memlet directionality
+        if isinstance(src_node, nodes.AccessNode) and validate_memlet_data(memlet.data, src_node.data):
+            write = True
+        elif isinstance(dst_node, nodes.AccessNode) and validate_memlet_data(memlet.data, dst_node.data):
+            write = False
+        elif isinstance(src_node, nodes.CodeNode) and isinstance(dst_node, nodes.CodeNode):
+            # Code->Code copy (not read nor write)
+            raise RuntimeError("Copying between code nodes is only supported as part of the participating nodes")
+        elif uconn is None and vconn is None and memlet.data is None and dst_schedule == dtypes.ScheduleType.Sequential:
+            # Sequential dependency edge
+            return
+        else:
+            raise LookupError("Memlet does not point to any of the nodes")
+
+        if isinstance(dst_node, nodes.Tasklet):
+            # Copy into tasklet
+            stream.write(
+                "    " + self.memlet_definition(sdfg, memlet, False, vconn, dst_node.in_connectors[vconn]),
+                cfg,
+                state_id,
+                [src_node, dst_node],
+            )
+            return
+        elif isinstance(src_node, nodes.Tasklet):
+            # Copy out of tasklet
+            stream.write(
+                "    " + self.memlet_definition(sdfg, memlet, True, uconn, src_node.out_connectors[uconn]),
+                cfg,
+                state_id,
+                [src_node, dst_node],
+            )
+            return
+        else:  # Copy array-to-array
+            src_nodedesc = src_node.desc(sdfg)
+            dst_nodedesc = dst_node.desc(sdfg)
+
+            if write:
+                vconn = self.ptr(dst_node.data, dst_nodedesc, sdfg)
+            ctype = dst_nodedesc.dtype.ctype
+
+            #############################################
+            # Corner cases
+
+            # Setting a reference
+            if isinstance(dst_nodedesc, dt.Reference) and orig_vconn == 'set':
+                srcptr = self.ptr(src_node.data, src_nodedesc, sdfg)
+                defined_type, _ = self._dispatcher.defined_vars.get(srcptr)
+                stream.write(
+                    "%s = %s;" % (vconn, cpp.cpp_ptr_expr(sdfg, memlet, defined_type, codegen=self)),
+                    cfg,
+                    state_id,
+                    [src_node, dst_node],
+                )
+                return
+
+            # Writing from/to a stream
+            if isinstance(sdfg.arrays[memlet.data], dt.Stream) or (isinstance(src_node, nodes.AccessNode)
+                                                                     and isinstance(src_nodedesc, dt.Stream)):
+                # Identify whether a stream is writing to an array
+                if isinstance(dst_nodedesc, (dt.Scalar, dt.Array)) and isinstance(src_nodedesc, dt.Stream):
+                    # Stream -> Array - pop bulk
+                    if is_array_stream_view(sdfg, dfg, src_node):
+                        return  # Do nothing (handled by ArrayStreamView)
+
+                    array_subset = (memlet.subset if memlet.data == dst_node.data else memlet.other_subset)
+                    if array_subset is None:  # Need to use entire array
+                        array_subset = subsets.Range.from_array(dst_nodedesc)
+
+                    # stream_subset = (memlet.subset
+                    #                  if memlet.data == src_node.data else
+                    #                  memlet.other_subset)
+                    stream_subset = memlet.subset
+                    if memlet.data != src_node.data and memlet.other_subset:
+                        stream_subset = memlet.other_subset
+
+                    stream_expr = cpp.cpp_offset_expr(src_nodedesc, stream_subset)
+                    array_expr = cpp.cpp_offset_expr(dst_nodedesc, array_subset)
+                    assert functools.reduce(lambda a, b: a * b, src_nodedesc.shape, 1) == 1
+                    stream.write(
+                        "{s}.pop(&{arr}[{aexpr}], {maxsize});".format(s=self.ptr(src_node.data, src_nodedesc, sdfg),
+                                                                      arr=self.ptr(dst_node.data, dst_nodedesc, sdfg),
+                                                                      aexpr=array_expr,
+                                                                      maxsize=cpp.sym2cpp(array_subset.num_elements())),
+                        cfg,
+                        state_id,
+                        [src_node, dst_node],
+                    )
+                    return
+                # Array -> Stream - push bulk
+                if isinstance(src_nodedesc, (dt.Scalar, dt.Array)) and isinstance(dst_nodedesc, dt.Stream):
+                    if isinstance(src_nodedesc, dt.Scalar):
+                        stream.write(
+                            "{s}.push({arr});".format(s=self.ptr(dst_node.data, dst_nodedesc, sdfg),
+                                                      arr=self.ptr(src_node.data, src_nodedesc, sdfg)),
+                            cfg,
+                            state_id,
+                            [src_node, dst_node],
+                        )
+                    elif hasattr(src_nodedesc, "src"):  # ArrayStreamView
+                        stream.write(
+                            "{s}.push({arr});".format(s=self.ptr(dst_node.data, dst_nodedesc, sdfg),
+                                                      arr=self.ptr(src_nodedesc.src, sdfg.arrays[src_nodedesc.src],
+                                                                   sdfg)),
+                            cfg,
+                            state_id,
+                            [src_node, dst_node],
+                        )
+                    else:
+                        copysize = " * ".join([cpp.sym2cpp(s) for s in memlet.subset.size()])
+                        stream.write(
+                            "{s}.push({arr}, {size});".format(s=self.ptr(dst_node.data, dst_nodedesc, sdfg),
+                                                              arr=self.ptr(src_node.data, src_nodedesc, sdfg),
+                                                              size=copysize),
+                            cfg,
+                            state_id,
+                            [src_node, dst_node],
+                        )
+                    return
+                else:
+                    # Unknown case
+                    raise NotImplementedError
+
+            #############################################
+
+            state_dfg: SDFGState = cfg.nodes()[state_id]
+
+            copy_shape, src_strides, dst_strides, src_expr, dst_expr = cpp.memlet_copy_to_absolute_strides(
+                self._dispatcher, sdfg, state_dfg, edge, src_node, dst_node)
+
+            # Which numbers to include in the variable argument part
+            dynshape, dynsrc, dyndst = 1, 1, 1
+
+            # Dynamic copy dimensions
+            if any(symbolic.issymbolic(s, sdfg.constants) for s in copy_shape):
+                copy_tmpl = "Dynamic<{type}, {veclen}, {aligned}, {dims}>".format(
+                    type=ctype,
+                    veclen=1,  # Taken care of in "type"
+                    aligned="false",
+                    dims=len(copy_shape),
+                )
+            else:  # Static copy dimensions
+                copy_tmpl = "<{type}, {veclen}, {aligned}, {dims}>".format(
+                    type=ctype,
+                    veclen=1,  # Taken care of in "type"
+                    aligned="false",
+                    dims=", ".join(cpp.sym2cpp(copy_shape)),
+                )
+                dynshape = 0
+
+            # Constant src/dst dimensions
+            if not any(symbolic.issymbolic(s, sdfg.constants) for s in dst_strides):
+                # Constant destination
+                shape_tmpl = "template ConstDst<%s>" % ", ".join(cpp.sym2cpp(dst_strides))
+                dyndst = 0
+            elif not any(symbolic.issymbolic(s, sdfg.constants) for s in src_strides):
+                # Constant source
+                shape_tmpl = "template ConstSrc<%s>" % ", ".join(cpp.sym2cpp(src_strides))
+                dynsrc = 0
+            else:
+                # Both dynamic
+                shape_tmpl = "Dynamic"
+
+            # Parameter pack handling
+            stride_tmpl_args = [0] * (dynshape + dynsrc + dyndst) * len(copy_shape)
+            j = 0
+            for shape, src, dst in zip(copy_shape, src_strides, dst_strides):
+                if dynshape > 0:
+                    stride_tmpl_args[j] = shape
+                    j += 1
+                if dynsrc > 0:
+                    stride_tmpl_args[j] = src
+                    j += 1
+                if dyndst > 0:
+                    stride_tmpl_args[j] = dst
+                    j += 1
+
+            copy_args = ([src_expr, dst_expr] +
+                         ([] if memlet.wcr is None else [cpp.unparse_cr(sdfg, memlet.wcr, dst_nodedesc.dtype)]) +
+                         cpp.sym2cpp(stride_tmpl_args))
+
+            # Instrumentation: Pre-copy
+            for instr in self._dispatcher.instrumentation.values():
+                if instr is not None:
+                    instr.on_copy_begin(sdfg, cfg, state_dfg, src_node, dst_node, edge, stream, None, copy_shape,
+                                        src_strides, dst_strides)
+
+            nc = True
+            if memlet.wcr is not None:
+                nc = not cpp.is_write_conflicted(dfg, edge, sdfg_schedule=self._toplevel_schedule)
+            if nc:
+                stream.write(
+                    """
+                    dace::CopyND{copy_tmpl}::{shape_tmpl}::{copy_func}(
+                        {copy_args});""".format(
+                        copy_tmpl=copy_tmpl,
+                        shape_tmpl=shape_tmpl,
+                        copy_func="Copy" if memlet.wcr is None else "Accumulate",
+                        copy_args=", ".join(copy_args),
+                    ),
+                    cfg,
+                    state_id,
+                    [src_node, dst_node],
+                )
+            else:  # Conflicted WCR
+                if dynshape == 1:
+                    warnings.warn('Performance warning: Emitting dynamically-'
+                                  'shaped atomic write-conflict resolution of an array.')
+                    stream.write(
+                        """
+                        dace::CopyND{copy_tmpl}::{shape_tmpl}::Accumulate_atomic(
+                        {copy_args});""".format(
+                            copy_tmpl=copy_tmpl,
+                            shape_tmpl=shape_tmpl,
+                            copy_args=", ".join(copy_args),
+                        ),
+                        cfg,
+                        state_id,
+                        [src_node, dst_node],
+                    )
+                elif copy_shape == [1]:  # Special case: accumulating one element
+                    dst_expr = self.memlet_view_ctor(sdfg, memlet, dst_nodedesc.dtype, True)
+                    stream.write(
+                        self.write_and_resolve_expr(
+                            sdfg, memlet, nc, dst_expr, '*(' + src_expr + ')', dtype=dst_nodedesc.dtype) + ';', cfg,
+                        state_id, [src_node, dst_node])
+                else:
+                    warnings.warn('Minor performance warning: Emitting statically-'
+                                  'shaped atomic write-conflict resolution of an array.')
+                    stream.write(
+                        """
+                        dace::CopyND{copy_tmpl}::{shape_tmpl}::Accumulate_atomic(
+                        {copy_args});""".format(
+                            copy_tmpl=copy_tmpl,
+                            shape_tmpl=shape_tmpl,
+                            copy_args=", ".join(copy_args),
+                        ),
+                        cfg,
+                        state_id,
+                        [src_node, dst_node],
+                    )
+
+        #############################################################
+        # Instrumentation: Post-copy
+        for instr in self._dispatcher.instrumentation.values():
+            if instr is not None:
+                instr.on_copy_end(sdfg, cfg, state_dfg, src_node, dst_node, edge, stream, None)
+        #############################################################
+
+    def memlet_definition(self,
+                          sdfg: SDFG,
+                          memlet: memlet.Memlet,
+                          output: bool,
+                          local_name: str,
+                          conntype: Union[dt.Data, dtypes.typeclass] = None,
+                          allow_shadowing: bool = False,
+                          codegen: Optional['CPUCodeGen'] = None):
+        # TODO: Robust rule set
+        if conntype is None:
+            raise ValueError('Cannot define memlet for "%s" without connector type' % local_name)
+        codegen = codegen or self
+        # Convert from Data to typeclass
+        if isinstance(conntype, dt.Data):
+            if isinstance(conntype, dt.Array):
+                conntype = dtypes.pointer(conntype.dtype)
+            else:
+                conntype = conntype.dtype
+
+        desc = sdfg.arrays[memlet.data]
+
+        is_scalar = not isinstance(conntype, dtypes.pointer) or desc.dtype == conntype
+        is_pointer = isinstance(conntype, dtypes.pointer)
+
+        # Allocate variable type
+        memlet_type = conntype.dtype.ctype
+
+        ptr = codegen.ptr(memlet.data, desc, sdfg)
+        types = None
+        # Non-free symbol dependent Arrays due to their shape
+        dependent_shape = (isinstance(desc, dt.Array) and not isinstance(desc, dt.View) and any(
+            str(s) not in self._frame.symbols_and_constants(sdfg) for s in self._frame.free_symbols(desc)))
+        try:
+            # NOTE: It is hard to get access to the view-edge here, so always
+            # check the declared-arrays dictionary for Views.
+            if dependent_shape or isinstance(desc, dt.View):
+                types = self._dispatcher.declared_arrays.get(ptr)
+        except KeyError:
+            pass
+        if not types:
+            types = self._dispatcher.defined_vars.get(ptr, is_global=True)
+        var_type, ctypedef = types
+
+        result = ''
+        expr = (cpp.cpp_array_expr(sdfg, memlet, with_brackets=False, codegen=self._frame)
+                if var_type in [DefinedType.Pointer, DefinedType.StreamArray, DefinedType.ArrayInterface] else ptr)
+
+        if expr != ptr:
+            expr = '%s[%s]' % (ptr, expr)
+        # If there is a type mismatch, cast pointer
+        expr = codegen.make_ptr_vector_cast(expr, desc.dtype, conntype, is_scalar, var_type)
+
+        defined = None
+
+        if var_type in [DefinedType.Scalar, DefinedType.Pointer, DefinedType.ArrayInterface]:
+            if output:
+                if is_pointer and var_type == DefinedType.ArrayInterface:
+                    result += "{} {} = {};".format(memlet_type, local_name, expr)
+                elif not memlet.dynamic or (memlet.dynamic and memlet.wcr is not None):
+                    # Dynamic WCR memlets start uninitialized
+                    result += "{} {};".format(memlet_type, local_name)
+                    defined = DefinedType.Scalar
+
+            else:
+                if not memlet.dynamic:
+                    if is_scalar:
+                        # We can pre-read the value
+                        result += "{} {} = {};".format(memlet_type, local_name, expr)
+                    else:
+                        # constexpr arrays
+                        if memlet.data in self._frame.symbols_and_constants(sdfg):
+                            result += "const {} {} = {};".format(memlet_type, local_name, expr)
+                        else:
+                            # Pointer reference
+                            result += "{} {} = {};".format(ctypedef, local_name, expr)
+                else:
+                    # Variable number of reads: get a const reference that can
+                    # be read if necessary
+                    memlet_type = 'const %s' % memlet_type
+                    if is_pointer:
+                        result += "{} {} = {};".format(memlet_type, local_name, expr)
+                    else:
+                        result += "{} &{} = {};".format(memlet_type, local_name, expr)
+                defined = (DefinedType.Scalar if is_scalar else DefinedType.Pointer)
+        elif var_type in [DefinedType.Stream, DefinedType.StreamArray]:
+            if not memlet.dynamic and memlet.num_accesses == 1:
+                if not output:
+                    if isinstance(desc, dt.Stream) and desc.is_stream_array():
+                        index = cpp.cpp_offset_expr(desc, memlet.subset)
+                        expr = f"{memlet.data}[{index}]"
+                    result += f'{memlet_type} {local_name} = ({expr}).pop();'
+                    defined = DefinedType.Scalar
+            else:
+                # Just forward actions to the underlying object
+                memlet_type = ctypedef
+                result += "{} &{} = {};".format(memlet_type, local_name, expr)
+                defined = DefinedType.Stream
+        else:
+            raise TypeError("Unknown variable type: {}".format(var_type))
+
+        if defined is not None:
+            self._dispatcher.defined_vars.add(local_name, defined, memlet_type, allow_shadowing=allow_shadowing)
+
+        return result
+
 
     @staticmethod
     def make_opencl_parameter(name, desc):

@@ -1207,12 +1207,15 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
 
     def generate_memlet_definition(self, sdfg, cfg, dfg, state_id, src_node, dst_node, edge, callsite_stream):
         memlet = edge.data
-        ptrname = self.ptr(memlet.data, sdfg.arrays[memlet.data], sdfg)
-
-        if (self._dispatcher.defined_vars.get(ptrname)[0] == DefinedType.FPGA_ShiftRegister):
+        name = memlet.data
+        desc = sdfg.arrays[memlet.data]
+        ptrname = self.ptr(name, desc, sdfg)
+        defined_type = self._dispatcher.defined_vars.get(ptrname)[0]
+        
+        if defined_type == DefinedType.FPGA_ShiftRegister:
             raise NotImplementedError("Shift register for Xilinx NYI")
         else:
-            self._cpu_codegen.copy_memory(sdfg, cfg, dfg, state_id, src_node, dst_node, edge, None, callsite_stream)
+            self.copy_memory(sdfg, cfg, dfg, state_id, src_node, dst_node, edge, None, callsite_stream)
 
     def allocate_view(self, sdfg: dace.SDFG, cfg: ControlFlowRegion, dfg: dace.SDFGState, state_id: int,
                       node: dace.nodes.AccessNode, global_stream: CodeIOStream, declaration_stream: CodeIOStream,
@@ -1254,12 +1257,11 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                                    decouple_array_interfaces=self._decouple_array_interfaces)
                     passed_memlet = copy.deepcopy(in_memlet)
                     passed_memlet.subset = fpga.modify_distributed_subset(passed_memlet.subset, bank)
-                    interface_ref = self.emit_memlet_reference(
-                        sdfg,
-                        passed_memlet,
-                        interface_name,
-                        conntype=node.in_connectors[vconn],
-                        is_write=False)
+                    interface_ref = self.emit_memlet_reference(sdfg,
+                                                               passed_memlet,
+                                                               interface_name,
+                                                               conntype=node.in_connectors[vconn],
+                                                               is_write=False)
                     memlet_references.append(interface_ref)
 
             if vconn in inout:
@@ -1307,12 +1309,11 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                                    decouple_array_interfaces=self._decouple_array_interfaces)
                     passed_memlet = copy.deepcopy(out_memlet)
                     passed_memlet.subset = fpga.modify_distributed_subset(passed_memlet.subset, bank)
-                    interface_ref = self.emit_memlet_reference(
-                        sdfg,
-                        passed_memlet,
-                        interface_name,
-                        conntype=node.out_connectors[uconn],
-                        is_write=True)
+                    interface_ref = self.emit_memlet_reference(sdfg,
+                                                               passed_memlet,
+                                                               interface_name,
+                                                               conntype=node.out_connectors[uconn],
+                                                               is_write=True)
                     memlet_references.append(interface_ref)
             else:
                 memlet_references.append(ref)
