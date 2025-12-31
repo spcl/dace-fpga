@@ -26,7 +26,7 @@ from dace.codegen.common import update_persistent_desc
 from dace.codegen.target import TargetCodeGenerator
 from dace.codegen import cppunparse
 from dace.sdfg.state import ControlFlowRegion, SDFGState, StateSubgraphView
-from dace.sdfg.utils import is_fpga_kernel
+from dace.sdfg.utils import is_fpga_kernel, is_array_stream_view
 from dace.symbolic import evaluate
 from collections import defaultdict
 from dace_fpga.codegen import fpga
@@ -323,9 +323,9 @@ class FPGAInterstateEdgeUnparser(cpp.InterstateEdgeUnparser):
             # unqualified = fpga.unqualify_fpga_array_name(self.sdfg, target)
             unqualified = target
             desc = self.sdfg.arrays[unqualified]
-            self.write(cpp.cpp_array_expr(self.sdfg, m, referenced_array=desc, codegen=self.codegen))
+            self.write(cpp.cpp_array_expr(self.sdfg, m, referenced_array=desc, framecode=self.framecode))
         else:
-            self.write(cpp.cpp_array_expr(self.sdfg, m, codegen=self.codegen))
+            self.write(cpp.cpp_array_expr(self.sdfg, m, framecode=self.framecode))
 
 
 def is_vendor_supported(fpga_vendor: str) -> bool:
@@ -487,10 +487,6 @@ class FPGACodeGen(TargetCodeGenerator):
         # Right before finalizing code, write FPGA context to state structure
         self._frame.statestruct.append('dace_fpga_context *fpga_context;')
 
-        # TODO: offset any multibank array accesses
-        # if fpga.is_multibank_array_with_distributed_index(d):
-        #     subset_in = fpga.modify_distributed_subset(subset_in, 0)
-
         # Call vendor-specific preprocessing
         self._internal_preprocess(sdfg)
 
@@ -641,8 +637,8 @@ class FPGACodeGen(TargetCodeGenerator):
             for kern, kern_id in kernels:
                 # Generate all kernels in this state
                 subgraphs = dace.sdfg.concurrent_subgraphs(kern)
-                single_sgs: list(ScopeSubgraphView) = []
-                multi_sgs: list(ScopeSubgraphView) = []
+                single_sgs: list[ScopeSubgraphView] = []
+                multi_sgs: list[ScopeSubgraphView] = []
                 for sg in subgraphs:
                     if self.is_multi_pumped_subgraph(sg):
                         multi_sgs.append(sg)
@@ -915,7 +911,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             is_rtl_subgraph = self.find_rtl_tasklet(subgraph)
             is_multi_subgraph = self.is_multi_pumped_subgraph(subgraph)
             subsdfg = subgraph.parent
-            candidates = []  # type: List[Tuple[bool,str,Data]]
+            candidates = []  # type: List[Tuple[bool,str,dt.Data]]
             # [(is an output, dataname string, data object)]
             array_to_banks_used_out: Dict[str, Set[int]] = {}
             array_to_banks_used_in: Dict[str, Set[int]] = {}
@@ -1642,14 +1638,14 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                                                 referenced_array=src_nodedesc,
                                                 use_other_subset=(not src_is_subset
                                                                   and memlet.other_subset is not None),
-                                                codegen=self._frame)
+                                                codegen=self)
             if memlet.dst_subset is not None:
                 offset_dst = cpp.cpp_array_expr(sdfg,
                                                 memlet,
                                                 with_brackets=False,
                                                 referenced_array=dst_nodedesc,
                                                 use_other_subset=(src_is_subset and memlet.other_subset is not None),
-                                                codegen=self._frame)
+                                                codegen=self)
 
             if (not sum(copy_shape) == 1 and
                 (not isinstance(memlet.subset, subsets.Range) or any([step != 1 for _, _, step in memlet.subset]))):
@@ -1991,8 +1987,8 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                     if memlet.data != src_node.data and memlet.other_subset:
                         stream_subset = memlet.other_subset
 
-                    stream_expr = cpp.cpp_offset_expr(src_nodedesc, stream_subset)
-                    array_expr = cpp.cpp_offset_expr(dst_nodedesc, array_subset)
+                    stream_expr = cpp.cpp_offset_expr(src_nodedesc, stream_subset, codegen=self)
+                    array_expr = cpp.cpp_offset_expr(dst_nodedesc, array_subset, codegen=self)
                     assert functools.reduce(lambda a, b: a * b, src_nodedesc.shape, 1) == 1
                     stream.write(
                         "{s}.pop(&{arr}[{aexpr}], {maxsize});".format(s=self.ptr(src_node.data, src_nodedesc, sdfg),
@@ -2192,6 +2188,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         memlet_type = conntype.dtype.ctype
 
         ptr = codegen.ptr(memlet.data, desc, sdfg)
+
         types = None
         # Non-free symbol dependent Arrays due to their shape
         dependent_shape = (isinstance(desc, dt.Array) and not isinstance(desc, dt.View) and any(
@@ -2207,8 +2204,20 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             types = self._dispatcher.defined_vars.get(ptr, is_global=True)
         var_type, ctypedef = types
 
+        if fpga.is_fpga_array(desc):
+            ptr = fpga.fpga_ptr(
+                memlet.data,
+                desc,
+                sdfg,
+                memlet.subset,
+                is_write=False,
+                dispatcher=self._dispatcher,
+                #ancestor,
+                is_array_interface=var_type == DefinedType.ArrayInterface,
+                decouple_array_interfaces=self._decouple_array_interfaces)
+
         result = ''
-        expr = (cpp.cpp_array_expr(sdfg, memlet, with_brackets=False, codegen=self._frame)
+        expr = (cpp.cpp_array_expr(sdfg, memlet, with_brackets=False, codegen=self)
                 if var_type in [DefinedType.Pointer, DefinedType.StreamArray, DefinedType.ArrayInterface] else ptr)
 
         if expr != ptr:
@@ -2252,7 +2261,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             if not memlet.dynamic and memlet.num_accesses == 1:
                 if not output:
                     if isinstance(desc, dt.Stream) and desc.is_stream_array():
-                        index = cpp.cpp_offset_expr(desc, memlet.subset)
+                        index = cpp.cpp_offset_expr(desc, memlet.subset, codegen=codegen)
                         expr = f"{memlet.data}[{index}]"
                     result += f'{memlet_type} {local_name} = ({expr}).pop();'
                     defined = DefinedType.Scalar
@@ -2833,13 +2842,14 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
     def make_ptr_vector_cast(self, *args, **kwargs):
         return cpp.make_ptr_vector_cast(*args, **kwargs)
 
-    def ptr(self, name: str, desc: dt.Data, sdfg: SDFG = None) -> str:
+    def ptr(self, name: str, desc: dt.Data, sdfg: SDFG = None, memlet: Optional[dace.Memlet] = None) -> str:
         """
         Returns a string that points to the data based on its name and descriptor.
 
         :param name: Data name.
         :param desc: Data descriptor.
-        :param sdfg: SDFG the data belongs to.
+        :param sdfg: SDFG in which the data resides.
+        :param memlet: Optional memlet associated with the data.
         :return: C-compatible name that can be used to access the data.
         """
         if is_fpga_array(desc):
@@ -2848,7 +2858,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                     name,
                     desc,
                     sdfg,
-                    #memlet.subset,
+                    memlet.subset if memlet is not None else None,
                     #is_write,
                     #dispatcher,
                     #ancestor,
@@ -2900,7 +2910,7 @@ __state->report.add_completion("{kernel_name}", "FPGA", 1e-3 * event_start, 1e-3
                               is_write: bool = None,
                               device_code=False) -> Tuple[str, str, str]:
         desc = sdfg.arrays[mmlt.data]
-        offset = cpp.cpp_offset_expr(desc, mmlt.subset)
+        offset = cpp.cpp_offset_expr(desc, mmlt.subset, codegen=self)
         offset_expr = '[' + offset + ']'
         ptrname = self.ptr(mmlt.data, desc, sdfg)
         typedef = conntype.ctype
@@ -2941,10 +2951,22 @@ __state->report.add_completion("{kernel_name}", "FPGA", 1e-3 * event_start, 1e-3
             # Cannot be accessed with offset different than zero. Check this if we can:
             if (isinstance(offset, int) and int(offset) != 0) or (isinstance(offset, str) and offset.isnumeric()
                                                                   and int(offset) != 0):
-                raise TypeError("Cannot offset device buffers from host code ({}, offset {})".format(datadef, offset))
+                raise TypeError("Cannot offset device buffers from host code ({}, offset {})".format(ptrname, offset))
             # Device buffers are passed by reference
             expr = ptrname
             if not typedef_and_ref.endswith('&'):
                 typedef_and_ref += '&'
 
         return typedef_and_ref, pointer_name, expr
+
+    def adjust_subset_for_codegen(self, nodedesc: dt.Data, subset: subsets.Subset) -> subsets.Subset:
+        """ Adjusts a memlet subset for code generation, if necessary.
+
+            :param subset: The original subset.
+            :param nodedesc: The data descriptor the subset applies to.
+            :return: The adjusted subset.
+        """
+        # Offset any multibank array accesses
+        if is_multibank_array_with_distributed_index(nodedesc):
+            return modify_distributed_subset(subset, 0)
+        return subset

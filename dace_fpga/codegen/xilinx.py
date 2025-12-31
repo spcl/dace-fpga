@@ -9,7 +9,7 @@ from dace import data as dt, registry, dtypes, subsets
 from dace.config import Config
 from dace.frontend import operations
 from dace.sdfg import nodes
-from dace.codegen import exceptions as cgx
+from dace.codegen import exceptions as cgx, cppunparse
 from dace.codegen.codeobject import CodeObject
 from dace.codegen.dispatcher import DefinedType
 from dace.codegen.prettycode import CodeIOStream
@@ -734,7 +734,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                     if p.is_stream_array():
                         kernel_args_module.append("dace::FIFO<{}, {}, {}> {}[{}]".format(
                             p.dtype.base_type.ctype, cpp.sym2cpp(p.veclen), cpp.sym2cpp(p.buffer_size), pname,
-                            p.size_string()))
+                            _size_string(p)))
                     else:
                         kernel_args_module.append("dace::FIFO<{}, {}, {}> &{}".format(
                             p.dtype.base_type.ctype, cpp.sym2cpp(p.veclen), cpp.sym2cpp(p.buffer_size), pname))
@@ -1174,7 +1174,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                     kernel_args.append("dace::FIFO<{}, {}, {}> {}[{}]".format(arg.dtype.base_type.ctype,
                                                                               cpp.sym2cpp(arg.veclen),
                                                                               cpp.sym2cpp(arg.buffer_size), name,
-                                                                              arg.size_string()))
+                                                                              _size_string(arg)))
                 else:
                     kernel_args.append("dace::FIFO<{}, {}, {}> &{}".format(arg.dtype.base_type.ctype,
                                                                            cpp.sym2cpp(arg.veclen),
@@ -1339,3 +1339,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         isvar = dt.Scalar(dtype)
         callsite_stream.write('%s;\n' % (isvar.as_arg(with_types=True, name=name)), sdfg)
         self._frame.dispatcher.defined_vars.add(name, DefinedType.Scalar, dtype.ctype)
+
+
+def _size_string(desc: dt.Data):
+    return (" * ".join([cppunparse.pyexpr2cpp(symbolic.symstr(s, cpp_mode=True)) for s in desc.shape]))

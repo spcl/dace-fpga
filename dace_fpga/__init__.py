@@ -4,7 +4,7 @@ import os
 from dace.config import Config
 from dace import dtypes
 from dace.codegen import dispatcher
-from dace.codegen.tools.type_inference import KNOWN_FUNCTIONS
+from dace.sdfg.type_inference import KNOWN_FUNCTIONS
 
 # Extend the configuration schema with FPGA-specific settings
 Config.extend(os.path.join(os.path.dirname(__file__), 'fpga_config_schema.yml'))

@@ -17,7 +17,7 @@ from dace.codegen.prettycode import CodeIOStream
 from dace.codegen.targets import cpp
 from dace_fpga.codegen import fpga
 from dace.codegen.common import codeblock_to_cpp
-from dace.codegen.tools.type_inference import infer_expr_type
+from dace.sdfg.type_inference import infer_expr_type
 from dace.frontend.python.astutils import rname, unparse, evalnode
 from dace.frontend import operations
 from dace.sdfg import find_input_arraynode, find_output_arraynode
@@ -796,7 +796,7 @@ __kernel void \\
                 # (no pass by reference)
                 # The defined type can be a scalar, and therefore we get its address
                 vec_type = ocl_types.dtype_to_ocl_str(desc.dtype)
-                offset = cpp.cpp_offset_expr(desc, in_memlet.subset, None)
+                offset = cpp.cpp_offset_expr(desc, in_memlet.subset, None, codegen=self)
                 offset_expr = '[' + offset + ']' if defined_type is not DefinedType.Scalar else ''
 
                 expr = self.make_ptr_vector_cast(ptrname + offset_expr, desc.dtype, node.in_connectors[vconn], False,
@@ -845,7 +845,7 @@ __kernel void \\
                     # special case: in intel FPGA this must be handled properly.
                     # The defined type can be scalar, and therefore we get its address
                     vec_type = ocl_types.dtype_to_ocl_str(desc.dtype)
-                    offset = cpp.cpp_offset_expr(desc, out_memlet.subset, None)
+                    offset = cpp.cpp_offset_expr(desc, out_memlet.subset, None, codegen=self)
                     offset_expr = '[' + offset + ']' if defined_type is not DefinedType.Scalar else ''
                     if desc.storage == dtypes.StorageType.FPGA_Global:
                         typedef = "__global volatile  {}* restrict".format(vec_type)
@@ -966,7 +966,7 @@ __kernel void \\
         dtype = conntype if is_scalar else conntype._typeclass
 
         memlet_type = self.make_vector_type(dtype, False)
-        offset = cpp.cpp_offset_expr(data_desc, memlet.subset, None)
+        offset = cpp.cpp_offset_expr(data_desc, memlet.subset, None, codegen=self)
 
         if dtype != data_dtype:
             if (isinstance(dtype, dace.vector) and dtype.base_type == data_dtype):
@@ -1068,7 +1068,7 @@ __kernel void \\
                     data_name = global_node[0][0][1 if is_output else 0].label
 
                     if outer_memlet is not None:
-                        offset = cpp.cpp_offset_expr(outer_sdfg.arrays[data_name], outer_memlet.subset)
+                        offset = cpp.cpp_offset_expr(outer_sdfg.arrays[data_name], outer_memlet.subset, codegen=self)
 
                     result += "{} {} = read_channel_intel({}[{}]);".format(
                         memlet_type, connector, self.get_mangled_channel_name(data_name, self._kernel_count), offset)
@@ -1077,9 +1077,9 @@ __kernel void \\
                 # Must happen directly in the code
                 # Here we create a macro which take the proper channel
                 if outer_memlet is not None:
-                    channel_idx = cpp.cpp_offset_expr(outer_sdfg.arrays[data_name], outer_memlet.subset)
+                    channel_idx = cpp.cpp_offset_expr(outer_sdfg.arrays[data_name], outer_memlet.subset, codegen=self)
                 else:
-                    channel_idx = cpp.cpp_offset_expr(sdfg.arrays[data_name], memlet.subset)
+                    channel_idx = cpp.cpp_offset_expr(sdfg.arrays[data_name], memlet.subset, codegen=self)
                 result += "#define {} {}[{}] // God save us".format(
                     connector, self.get_mangled_channel_name(data_name, self._kernel_count), channel_idx)
                 self._dispatcher.defined_vars.add(connector, DefinedType.Stream, ctypedef)
@@ -1099,7 +1099,7 @@ __kernel void \\
                     # mangle channel
                     chan_name = self.get_mangled_channel_name(data_name, self._kernel_count)
                     if data_desc.is_stream_array():
-                        offset = cpp.cpp_offset_expr(data_desc, memlet.subset)
+                        offset = cpp.cpp_offset_expr(data_desc, memlet.subset, codegen=self)
                         target = f"{chan_name}[{offset}]"
                     else:
                         target = chan_name
@@ -1300,7 +1300,7 @@ __kernel void \\
 
     def write_and_resolve_expr(self, sdfg, memlet, nc, outname, inname, indices=None, dtype=None):
         desc = sdfg.arrays[memlet.data]
-        offset = cpp.cpp_offset_expr(desc, memlet.subset, None)
+        offset = cpp.cpp_offset_expr(desc, memlet.subset, None, codegen=self)
         ptrname = self.ptr(memlet.data, desc, sdfg)
         defined_type, _ = self._dispatcher.defined_vars.get(ptrname)
         return self.make_write(defined_type, dtype, ptrname, ptrname, offset, inname, memlet.wcr, False, 1)
