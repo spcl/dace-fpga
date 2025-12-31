@@ -9,6 +9,7 @@ from dace.sdfg import nodes as nd
 from dace import SDFG, SDFGState, memlet, data
 from dace_fpga.codegen import fpga
 
+
 def modify_bank_assignment(array_name: str,
                            sdfg: SDFG,
                            new_memory: str,
@@ -171,7 +172,7 @@ class HbmTransform(transformation.SingleStateTransformation):
                        sdfg: SDFG,
                        permissive: bool = False) -> bool:
         from dace_fpga import api  # Avoid import loop
-        
+
         # This can only be applied when this state can run on FPGA
         if not isinstance(graph, SDFGState) or not api.can_run_state_on_fpga(graph):
             return False

@@ -9,7 +9,7 @@ from dace.sdfg.validation import InvalidSDFGError, InvalidSDFGNodeError
 def validate_fpga_sdfg(sdfg: SDFG):
     """
     Validates an FPGA SDFG for correctness.
-    
+
     :param sdfg: The SDFG to validate.
     :raises InvalidSDFGError: If the SDFG is invalid.
     :raises InvalidSDFGNodeError: If a node in the SDFG is invalid.

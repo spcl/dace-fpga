@@ -12,7 +12,6 @@ from dace.transformation.dataflow import StreamingMemory, Vectorization
 from dace_fpga.transformations import FPGATransformState, TemporalVectorization
 
 
-
 def make_vadd_sdfg(N: dace.symbol, veclen: int = 8):
     '''
     Function for generating a simple vector addition SDFG that adds a vector `A` of `N` elements to a scalar `B` into a vector `C` of `N` elements, all using SystemVerilog.

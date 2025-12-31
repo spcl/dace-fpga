@@ -258,19 +258,20 @@ if tm * {T} + m  < {M}  and  n0 * {P} + n1 < {N} :
             # It must be computed by considering T and the latency needed to consolidate a partial result
             # (which is the latency of the add + latency for reading and writing to BRAM).
 
-            entry_pipeline, exit_pipeline = api.add_pipeline(state, "compute_and_drain", {
-                "n0": f"0:ceiling({N}/{P})",
-                "tm": f"0:ceiling({M}/{T})",
-                "k": f"0:{K}",
-                "m": f"0:{T} + {L}"
-            },
-                                                               drain_size=P * T,
-                                                               drain_overlap=False,
-                                                               additional_iterators={
-                                                                   'm_drain': 0,
-                                                                   'k_drain': 0
-                                                               },
-                                                               schedule=dace.ScheduleType.FPGA_Device)
+            entry_pipeline, exit_pipeline = api.add_pipeline(state,
+                                                             "compute_and_drain", {
+                                                                 "n0": f"0:ceiling({N}/{P})",
+                                                                 "tm": f"0:ceiling({M}/{T})",
+                                                                 "k": f"0:{K}",
+                                                                 "m": f"0:{T} + {L}"
+                                                             },
+                                                             drain_size=P * T,
+                                                             drain_overlap=False,
+                                                             additional_iterators={
+                                                                 'm_drain': 0,
+                                                                 'k_drain': 0
+                                                             },
+                                                             schedule=dace.ScheduleType.FPGA_Device)
 
             # Instantiate buffers
             sdfg.add_scalar("A_reg", dtype=dtype_a, transient=True, storage=dace.dtypes.StorageType.FPGA_Registers)

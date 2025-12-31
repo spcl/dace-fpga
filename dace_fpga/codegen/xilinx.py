@@ -1211,7 +1211,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         desc = sdfg.arrays[memlet.data]
         ptrname = self.ptr(name, desc, sdfg)
         defined_type = self._dispatcher.defined_vars.get(ptrname)[0]
-        
+
         if defined_type == DefinedType.FPGA_ShiftRegister:
             raise NotImplementedError("Shift register for Xilinx NYI")
         else:

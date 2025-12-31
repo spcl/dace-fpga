@@ -28,6 +28,7 @@ from dace_fpga import opencl_types
 # Lists allowed modules and maps them to OpenCL
 _OPENCL_ALLOWED_MODULES = {"builtins": "", "dace": "", "math": ""}
 
+
 class OpenCLUnparser(cppunparse.CPPUnparser):
     """Methods in this class recursively traverse an AST and
     output C++ source code for the abstract syntax; original formatting

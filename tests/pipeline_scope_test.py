@@ -4,6 +4,7 @@ import dace
 from dace_fpga.fpga_testing import fpga_test, xilinx_test
 from dace_fpga import api
 
+
 def make_sdfg(dtype,
               name="pipeline_test",
               input_device_memory="ddr",
@@ -60,17 +61,18 @@ def make_sdfg(dtype,
     produce_output_stream = state.add_write("b_stream")
     consume_output_stream = state.add_write("b_stream")
 
-    entry, exit = api.add_pipeline(state, name, {
-        "n": "0:N",
-        "k": "0:K",
-        "m": "0:M",
-    },
-                                     schedule=dace.ScheduleType.FPGA_Device,
-                                     init_size=k * m,
-                                     init_overlap=True,
-                                     drain_size=k * m,
-                                     drain_overlap=True,
-                                     additional_iterators={'user_var': 0})
+    entry, exit = api.add_pipeline(state,
+                                   name, {
+                                       "n": "0:N",
+                                       "k": "0:K",
+                                       "m": "0:M",
+                                   },
+                                   schedule=dace.ScheduleType.FPGA_Device,
+                                   init_size=k * m,
+                                   init_overlap=True,
+                                   drain_size=k * m,
+                                   drain_overlap=True,
+                                   additional_iterators={'user_var': 0})
     # for the sake of testing, use the additional user_var to set to zero the last element of each row
     tasklet = state.add_tasklet(
         name, {"_in"}, {"_out"}, """\

@@ -4,6 +4,7 @@ import dace
 from dace_fpga.fpga_testing import fpga_test
 from dace_fpga import api
 
+
 def make_sdfg(name="fpga_stcl_test", dtype=dace.float32, veclen=8):
 
     vtype = dace.vector(dtype, veclen)
@@ -65,15 +66,16 @@ south = _south if i < N - 1 else 1
 
 result = 0.25 * (north + west + east + south)""".format(W=veclen))
 
-    entry, exit = api.add_pipeline(state, name, {
-        "i": "0:N",
-        "j": "0:M/{}".format(veclen),
-    },
-                                     schedule=dace.ScheduleType.FPGA_Device,
-                                     init_size=m / veclen,
-                                     init_overlap=False,
-                                     drain_size=m / veclen,
-                                     drain_overlap=True)
+    entry, exit = api.add_pipeline(state,
+                                   name, {
+                                       "i": "0:N",
+                                       "j": "0:M/{}".format(veclen),
+                                   },
+                                   schedule=dace.ScheduleType.FPGA_Device,
+                                   init_size=m / veclen,
+                                   init_overlap=False,
+                                   drain_size=m / veclen,
+                                   drain_overlap=True)
 
     # Unrolled map
     unroll_entry, unroll_exit = state.add_map(name + "_unroll", {"u": "0:{}".format(veclen)},

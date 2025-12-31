@@ -57,10 +57,10 @@ def axpy(alpha: dace.float32, x: dace.float32[N], y: dace.float32[N]):
 
 if __name__ == "__main__":
 	sdfg = axpy.to_sdfg()
-  
+
   # Transform DaCe program to run on an FPGA
   apply_fpga_transformations(sdfg)
-  
+
   # Or, to apply FPGA transformations and auto-optimization passes, run:
 	# auto_optimize_fpga(sdfg, dace.DeviceType.FPGA)
 

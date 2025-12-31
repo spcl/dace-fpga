@@ -40,16 +40,10 @@ def run_vec_sum(vectorize_first: bool):
     sdfg = vec_sum.to_sdfg()
 
     if vectorize_first:
-        transformations = [
-            Vectorization,
-            FPGATransformSDFG
-        ]
+        transformations = [Vectorization, FPGATransformSDFG]
         transformation_options = [{"propagate_parent": True, "postamble": False}, {}]
     else:
-        transformations = [
-            FPGATransformSDFG,
-            Vectorization
-        ]
+        transformations = [FPGATransformSDFG, Vectorization]
         transformation_options = [{}, {"propagate_parent": True, "postamble": False}]
 
     assert sdfg.apply_transformations(transformations, transformation_options) == 2

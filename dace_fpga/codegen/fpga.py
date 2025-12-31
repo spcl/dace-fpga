@@ -494,7 +494,7 @@ class FPGACodeGen(TargetCodeGenerator):
         """
         Returns a dictionary mapping backends to lists of include files
         required by this target.
-        
+
         :return: A dictionary of backend names to lists of include files.
         """
         return {'frame': ['dace_fpga/dace_fpga.h']}
@@ -1969,7 +1969,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
 
             # Writing from/to a stream
             if isinstance(sdfg.arrays[memlet.data], dt.Stream) or (isinstance(src_node, nodes.AccessNode)
-                                                                     and isinstance(src_nodedesc, dt.Stream)):
+                                                                   and isinstance(src_nodedesc, dt.Stream)):
                 # Identify whether a stream is writing to an array
                 if isinstance(dst_nodedesc, (dt.Scalar, dt.Array)) and isinstance(src_nodedesc, dt.Stream):
                     # Stream -> Array - pop bulk
@@ -2277,7 +2277,6 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             self._dispatcher.defined_vars.add(local_name, defined, memlet_type, allow_shadowing=allow_shadowing)
 
         return result
-
 
     @staticmethod
     def make_opencl_parameter(name, desc):

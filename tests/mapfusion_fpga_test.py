@@ -6,6 +6,7 @@ import numpy as np
 from dace.config import set_temporary
 import dace
 
+
 @dace.program
 def multiple_fusions(A: dace.float32[10, 20], B: dace.float32[10, 20], C: dace.float32[10, 20], out: dace.float32[1]):
     A_prime = dace.define_local([10, 20], dtype=A.dtype)
