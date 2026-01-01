@@ -783,7 +783,7 @@ __kernel void \\
             if vconn in inout or in_memlet.data is None:
                 continue
             desc = sdfg.arrays[in_memlet.data]
-            ptrname = self.ptr(in_memlet.data, desc, sdfg)
+            ptrname = self.ptr(in_memlet.data, desc, sdfg, in_memlet, is_write=False, ancestor=1)
             defined_type, defined_ctype = self._dispatcher.defined_vars.get(ptrname, 1)
 
             #change c type to opencl type
@@ -833,7 +833,7 @@ __kernel void \\
         for _, uconn, _, _, out_memlet in state.out_edges(node):
             if out_memlet.data is not None:
                 desc = sdfg.arrays[out_memlet.data]
-                ptrname = self.ptr(out_memlet.data, desc, sdfg)
+                ptrname = self.ptr(out_memlet.data, desc, sdfg, out_memlet, is_write=True, ancestor=1)
                 defined_type, defined_ctype = self._dispatcher.defined_vars.get(ptrname, 1)
 
                 #change c type to opencl type
@@ -989,7 +989,7 @@ __kernel void \\
             data_name = outer_stream_node_trace[0][0][1 if is_output else 0].label
             is_global = True
 
-        data_name = self.ptr(data_name, data_desc, sdfg)
+        data_name = self.ptr(data_name, data_desc, sdfg, memlet, is_write=is_output)
 
         def_type, ctypedef = self._dispatcher.defined_vars.get(data_name, is_global=is_global)
         if def_type == DefinedType.Scalar:
@@ -1301,7 +1301,7 @@ __kernel void \\
     def write_and_resolve_expr(self, sdfg, memlet, nc, outname, inname, indices=None, dtype=None):
         desc = sdfg.arrays[memlet.data]
         offset = cpp.cpp_offset_expr(desc, memlet.subset, None, codegen=self)
-        ptrname = self.ptr(memlet.data, desc, sdfg)
+        ptrname = self.ptr(memlet.data, desc, sdfg, memlet, is_write=True)
         defined_type, _ = self._dispatcher.defined_vars.get(ptrname)
         return self.make_write(defined_type, dtype, ptrname, ptrname, offset, inname, memlet.wcr, False, 1)
 

@@ -1853,8 +1853,8 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                 for node in dependency_pragma_nodes:
                     self.generate_no_dependence_post(callsite_stream, sdfg, cfg, state_id, dst_node, node.data)
 
-            src_name = self.ptr(src_node.data, src_node.desc(sdfg), sdfg)
-            dst_name = self.ptr(dst_node.data, dst_node.desc(sdfg), sdfg)
+            src_name = self.ptr(src_node.data, src_node.desc(sdfg), sdfg, memlet, is_write=False)
+            dst_name = self.ptr(dst_node.data, dst_node.desc(sdfg), sdfg, memlet, is_write=True)
             src_def_type, _ = self._dispatcher.defined_vars.get(src_name)
             dst_def_type, _ = self._dispatcher.defined_vars.get(dst_name)
 
@@ -1949,7 +1949,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             dst_nodedesc = dst_node.desc(sdfg)
 
             if write:
-                vconn = self.ptr(dst_node.data, dst_nodedesc, sdfg)
+                vconn = self.ptr(dst_node.data, dst_nodedesc, sdfg, memlet, is_write=True)
             ctype = dst_nodedesc.dtype.ctype
 
             #############################################
@@ -1957,7 +1957,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
 
             # Setting a reference
             if isinstance(dst_nodedesc, dt.Reference) and orig_vconn == 'set':
-                srcptr = self.ptr(src_node.data, src_nodedesc, sdfg)
+                srcptr = self.ptr(src_node.data, src_nodedesc, sdfg, memlet, is_write=False)
                 defined_type, _ = self._dispatcher.defined_vars.get(srcptr)
                 stream.write(
                     "%s = %s;" % (vconn, cpp.cpp_ptr_expr(sdfg, memlet, defined_type, codegen=self)),
@@ -1991,8 +1991,16 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                     array_expr = cpp.cpp_offset_expr(dst_nodedesc, array_subset, codegen=self)
                     assert functools.reduce(lambda a, b: a * b, src_nodedesc.shape, 1) == 1
                     stream.write(
-                        "{s}.pop(&{arr}[{aexpr}], {maxsize});".format(s=self.ptr(src_node.data, src_nodedesc, sdfg),
-                                                                      arr=self.ptr(dst_node.data, dst_nodedesc, sdfg),
+                        "{s}.pop(&{arr}[{aexpr}], {maxsize});".format(s=self.ptr(src_node.data,
+                                                                                 src_nodedesc,
+                                                                                 sdfg,
+                                                                                 memlet,
+                                                                                 is_write=False),
+                                                                      arr=self.ptr(dst_node.data,
+                                                                                   dst_nodedesc,
+                                                                                   sdfg,
+                                                                                   memlet,
+                                                                                   is_write=True),
                                                                       aexpr=array_expr,
                                                                       maxsize=cpp.sym2cpp(array_subset.num_elements())),
                         cfg,
@@ -2004,17 +2012,32 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                 if isinstance(src_nodedesc, (dt.Scalar, dt.Array)) and isinstance(dst_nodedesc, dt.Stream):
                     if isinstance(src_nodedesc, dt.Scalar):
                         stream.write(
-                            "{s}.push({arr});".format(s=self.ptr(dst_node.data, dst_nodedesc, sdfg),
-                                                      arr=self.ptr(src_node.data, src_nodedesc, sdfg)),
+                            "{s}.push({arr});".format(s=self.ptr(dst_node.data,
+                                                                 dst_nodedesc,
+                                                                 sdfg,
+                                                                 memlet,
+                                                                 is_write=True),
+                                                      arr=self.ptr(src_node.data,
+                                                                   src_nodedesc,
+                                                                   sdfg,
+                                                                   memlet,
+                                                                   is_write=False)),
                             cfg,
                             state_id,
                             [src_node, dst_node],
                         )
                     elif hasattr(src_nodedesc, "src"):  # ArrayStreamView
                         stream.write(
-                            "{s}.push({arr});".format(s=self.ptr(dst_node.data, dst_nodedesc, sdfg),
-                                                      arr=self.ptr(src_nodedesc.src, sdfg.arrays[src_nodedesc.src],
-                                                                   sdfg)),
+                            "{s}.push({arr});".format(s=self.ptr(dst_node.data,
+                                                                 dst_nodedesc,
+                                                                 sdfg,
+                                                                 memlet,
+                                                                 is_write=True),
+                                                      arr=self.ptr(src_nodedesc.src,
+                                                                   sdfg.arrays[src_nodedesc.src],
+                                                                   sdfg,
+                                                                   memlet,
+                                                                   is_write=False)),
                             cfg,
                             state_id,
                             [src_node, dst_node],
@@ -2022,8 +2045,16 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                     else:
                         copysize = " * ".join([cpp.sym2cpp(s) for s in memlet.subset.size()])
                         stream.write(
-                            "{s}.push({arr}, {size});".format(s=self.ptr(dst_node.data, dst_nodedesc, sdfg),
-                                                              arr=self.ptr(src_node.data, src_nodedesc, sdfg),
+                            "{s}.push({arr}, {size});".format(s=self.ptr(dst_node.data,
+                                                                         dst_nodedesc,
+                                                                         sdfg,
+                                                                         memlet,
+                                                                         is_write=True),
+                                                              arr=self.ptr(src_node.data,
+                                                                           src_nodedesc,
+                                                                           sdfg,
+                                                                           memlet,
+                                                                           is_write=False),
                                                               size=copysize),
                             cfg,
                             state_id,
@@ -2167,7 +2198,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                           local_name: str,
                           conntype: Union[dt.Data, dtypes.typeclass] = None,
                           allow_shadowing: bool = False,
-                          codegen: Optional['CPUCodeGen'] = None):
+                          codegen: Optional[TargetCodeGenerator] = None):
         # TODO: Robust rule set
         if conntype is None:
             raise ValueError('Cannot define memlet for "%s" without connector type' % local_name)
@@ -2187,7 +2218,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         # Allocate variable type
         memlet_type = conntype.dtype.ctype
 
-        ptr = codegen.ptr(memlet.data, desc, sdfg)
+        ptr = codegen.ptr(memlet.data, desc, sdfg, memlet, is_write=output)
 
         types = None
         # Non-free symbol dependent Arrays due to their shape
@@ -2841,7 +2872,13 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
     def make_ptr_vector_cast(self, *args, **kwargs):
         return cpp.make_ptr_vector_cast(*args, **kwargs)
 
-    def ptr(self, name: str, desc: dt.Data, sdfg: SDFG = None, memlet: Optional[dace.Memlet] = None) -> str:
+    def ptr(self,
+            name: str,
+            desc: dt.Data,
+            sdfg: SDFG = None,
+            memlet: Optional[dace.Memlet] = None,
+            is_write: bool = None,
+            ancestor: int = 0) -> str:
         """
         Returns a string that points to the data based on its name and descriptor.
 
@@ -2849,20 +2886,39 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         :param desc: Data descriptor.
         :param sdfg: SDFG in which the data resides.
         :param memlet: Optional memlet associated with the data.
+        :param is_write: Whether the access is a write access.
+        :param ancestor: Scope ancestor level.
         :return: C-compatible name that can be used to access the data.
         """
         if is_fpga_array(desc):
+            ptrname = cpp.ptr(name, desc, sdfg, self._frame)
+            # Get defined type (pointer, stream etc.) and change the type definition
+            # accordingly.
+            defined_types = None
             try:
-                return fpga_ptr(
-                    name,
-                    desc,
-                    sdfg,
-                    memlet.subset if memlet is not None else None,
-                    #is_write,
-                    #dispatcher,
-                    #ancestor,
-                    #defined_type == DefinedType.ArrayInterface,
-                    decouple_array_interfaces=self._decouple_array_interfaces)
+                if (isinstance(desc, dt.Array) and not isinstance(desc, dt.View) and any(
+                        str(s) not in self._dispatcher.frame.symbols_and_constants(sdfg)
+                        for s in self._dispatcher.frame.free_symbols(desc))):
+                    defined_types = self._dispatcher.declared_arrays.get(ptrname, ancestor)
+            except KeyError:
+                pass
+            try:
+                if not defined_types:
+                    defined_types = self._dispatcher.defined_vars.get(ptrname, ancestor)
+                defined_type, _ = defined_types
+            except KeyError:
+                defined_type = DefinedType.Pointer
+
+            try:
+                return fpga_ptr(name,
+                                desc,
+                                sdfg,
+                                memlet.subset if memlet is not None else None,
+                                is_write=is_write,
+                                dispatcher=self._dispatcher,
+                                ancestor=ancestor,
+                                is_array_interface=(defined_type == DefinedType.ArrayInterface),
+                                decouple_array_interfaces=self._decouple_array_interfaces)
             except ValueError:
                 pass
         return cpp.ptr(name, desc, sdfg, self._frame)
@@ -2911,7 +2967,7 @@ __state->report.add_completion("{kernel_name}", "FPGA", 1e-3 * event_start, 1e-3
         desc = sdfg.arrays[mmlt.data]
         offset = cpp.cpp_offset_expr(desc, mmlt.subset, codegen=self)
         offset_expr = '[' + offset + ']'
-        ptrname = self.ptr(mmlt.data, desc, sdfg)
+        ptrname = self.ptr(mmlt.data, desc, sdfg, mmlt, is_write, ancestor)
         typedef = conntype.ctype
         is_scalar = not isinstance(conntype, dtypes.pointer) and not is_fpga_array(desc)
 

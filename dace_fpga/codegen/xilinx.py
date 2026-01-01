@@ -372,23 +372,12 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         Emits a conflict resolution call from a memlet.
         """
         redtype = operations.detect_reduction_type(memlet.wcr, openmp=True)
-        ptrname = self.ptr(memlet.data, sdfg.arrays[memlet.data], sdfg)
-        defined_type, _ = self._dispatcher.defined_vars.get(ptrname)
+        ptrname = self.ptr(memlet.data, sdfg.arrays[memlet.data], sdfg, memlet, is_write=True)
         if isinstance(indices, str):
-            ptr = '%s + %s' % (cpp.cpp_ptr_expr(sdfg,
-                                                memlet,
-                                                defined_type,
-                                                is_write=True,
-                                                codegen=self,
-                                                decouple_array_interface=self._decouple_array_interfaces), indices)
+            ptr = ptrname + ' + ' + indices
         else:
-            ptr = cpp.cpp_ptr_expr(sdfg,
-                                   memlet,
-                                   defined_type,
-                                   indices=indices,
-                                   is_write=True,
-                                   codegen=self,
-                                   decouple_array_interface=self._decouple_array_interfaces)
+            ptr = ptrname + ' + ' + cpp.cpp_offset_expr(
+                sdfg.arrays[memlet.data], memlet.subset, indices=indices, codegen=self)
 
         if isinstance(dtype, dtypes.pointer):
             dtype = dtype.base_type
@@ -1209,7 +1198,8 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         memlet = edge.data
         name = memlet.data
         desc = sdfg.arrays[memlet.data]
-        ptrname = self.ptr(name, desc, sdfg)
+        is_write = getattr(dst_node, 'data', False) == memlet.data
+        ptrname = self.ptr(name, desc, sdfg, memlet, is_write=is_write)
         defined_type = self._dispatcher.defined_vars.get(ptrname)[0]
 
         if defined_type == DefinedType.FPGA_ShiftRegister:
@@ -1243,7 +1233,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
             if not self._decouple_array_interfaces and vconn in inout:
                 # Only one interface will be generated
                 continue
-            ptrname = self.ptr(in_memlet.data, sdfg.arrays[in_memlet.data], sdfg)
+            ptrname = self.ptr(in_memlet.data, sdfg.arrays[in_memlet.data], sdfg, in_memlet, is_write=False, ancestor=1)
             is_memory_interface = (self._dispatcher.defined_vars.get(ptrname, 1)[0] == DefinedType.ArrayInterface)
             desc = sdfg.arrays[in_memlet.data]
             if is_memory_interface:
@@ -1295,7 +1285,12 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                              uconn,
                                              conntype=node.out_connectors[uconn],
                                              is_write=True)
-            ptrname = self.ptr(out_memlet.data, sdfg.arrays[out_memlet.data], sdfg)
+            ptrname = self.ptr(out_memlet.data,
+                               sdfg.arrays[out_memlet.data],
+                               sdfg,
+                               out_memlet,
+                               is_write=True,
+                               ancestor=1)
             is_memory_interface = (self._dispatcher.defined_vars.get(ptrname, 1)[0] == DefinedType.ArrayInterface)
 
             if is_memory_interface:
