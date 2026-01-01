@@ -373,6 +373,10 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         """
         redtype = operations.detect_reduction_type(memlet.wcr, openmp=True)
         ptrname = self.ptr(memlet.data, sdfg.arrays[memlet.data], sdfg, memlet, is_write=True)
+        defined_type, _ = self._dispatcher.defined_vars.get(ptrname)
+        if defined_type == DefinedType.Scalar:
+            ptrname = '&' + ptrname
+
         if isinstance(indices, str):
             ptr = ptrname + ' + ' + indices
         else:
