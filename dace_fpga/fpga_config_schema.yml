@@ -223,23 +223,13 @@ required:
                         title: Verilator Enable Debug
                         description: Enable/disable verbose internal state debug output.
 
+    instrumentation:
+        type: dict
+        title: Instrumentation
+        description: Instrumentation preferences
+        required:
             print_fpga_runtime:
                 type: bool
                 default: false
                 title: Print FPGA runtime
                 description: Prints the runtime of instrumented FPGA kernel states to standard output.
-
-
-            blas:
-                type: dict
-                title: FPGA
-                description: FPGA-specific BLAS options.
-                required:
-                    default_stream_depth:
-                        type: int
-                        default: 32
-                        title: Default FPGA stream depth
-                        description: >
-                            Default FPGA stream depth used in the BLAS
-                            library nodes and the corresponding
-                            streaming transformations
