@@ -1768,7 +1768,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             # Try to turn into degenerate/strided ND copies
             state_dfg = cfg.node(state_id)
             copy_shape, src_strides, dst_strides, src_expr, dst_expr = (cpp.memlet_copy_to_absolute_strides(
-                self._dispatcher, sdfg, state_dfg, edge, src_node, dst_node))
+                self._dispatcher, sdfg, state_dfg, edge, src_node, dst_node, codegen=self))
 
             dtype = src_node.desc(sdfg).dtype
             ctype = dtype.ctype
@@ -1853,10 +1853,16 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                 for node in dependency_pragma_nodes:
                     self.generate_no_dependence_post(callsite_stream, sdfg, cfg, state_id, dst_node, node.data)
 
-            src_name = self.ptr(src_node.data, src_node.desc(sdfg), sdfg, memlet, is_write=False)
-            dst_name = self.ptr(dst_node.data, dst_node.desc(sdfg), sdfg, memlet, is_write=True)
-            src_def_type, _ = self._dispatcher.defined_vars.get(src_name)
-            dst_def_type, _ = self._dispatcher.defined_vars.get(dst_name)
+            src_name = self.ptr(src_node.data, src_node.desc(sdfg), sdfg, memlet.src_subset, is_write=False)
+            dst_name = self.ptr(dst_node.data, dst_node.desc(sdfg), sdfg, memlet.dst_subset, is_write=True)
+            try:
+                src_def_type, _ = self._dispatcher.defined_vars.get(src_name)
+            except KeyError:
+                src_def_type, _ = self._dispatcher.defined_vars.get(src_node.data)
+            try:
+                dst_def_type, _ = self._dispatcher.defined_vars.get(dst_name)
+            except KeyError:
+                dst_def_type, _ = self._dispatcher.defined_vars.get(dst_node.data)
 
             # Construct indices (if the length of the stride array is zero,
             # resolves to an empty string)
@@ -1872,6 +1878,17 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                 src_index = "0"
             if not dst_index:
                 dst_index = "0"
+
+            # Rerun expression generation with name overrides
+            _, _, _, src_expr, dst_expr = (cpp.memlet_copy_to_absolute_strides(self._dispatcher,
+                                                                               sdfg,
+                                                                               state_dfg,
+                                                                               edge,
+                                                                               src_node,
+                                                                               dst_node,
+                                                                               src_name_override=src_name,
+                                                                               dst_name_override=dst_name,
+                                                                               codegen=self))
 
             # Language specific
             read_expr = self.make_read(src_def_type, dtype, src_node.label, src_expr, src_index, is_pack,
@@ -2070,7 +2087,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             state_dfg: SDFGState = cfg.nodes()[state_id]
 
             copy_shape, src_strides, dst_strides, src_expr, dst_expr = cpp.memlet_copy_to_absolute_strides(
-                self._dispatcher, sdfg, state_dfg, edge, src_node, dst_node)
+                self._dispatcher, sdfg, state_dfg, edge, src_node, dst_node, codegen=self)
 
             # Which numbers to include in the variable argument part
             dynshape, dynsrc, dyndst = 1, 1, 1
@@ -2876,7 +2893,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             name: str,
             desc: dt.Data,
             sdfg: SDFG = None,
-            memlet: Optional[dace.Memlet] = None,
+            subset: Optional[subsets.Subset] = None,
             is_write: bool = None,
             ancestor: int = 0) -> str:
         """
@@ -2885,7 +2902,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         :param name: Data name.
         :param desc: Data descriptor.
         :param sdfg: SDFG in which the data resides.
-        :param memlet: Optional memlet associated with the data.
+        :param subset: Optional subset associated with the data.
         :param is_write: Whether the access is a write access.
         :param ancestor: Scope ancestor level.
         :return: C-compatible name that can be used to access the data.
@@ -2913,7 +2930,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                 return fpga_ptr(name,
                                 desc,
                                 sdfg,
-                                memlet.subset if memlet is not None else None,
+                                subset if subset is not None else None,
                                 is_write=is_write,
                                 dispatcher=self._dispatcher,
                                 ancestor=ancestor,
