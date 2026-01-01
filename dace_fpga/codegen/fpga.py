@@ -242,15 +242,15 @@ def fpga_ptr(name: str,
         if location_bank is not None:
             mem_type = location_bank[0].lower()
 
-        if (subset_info == None):
+        if subset_info is None:
             raise ValueError("Cannot generate name for bank without subset info")
         elif (isinstance(subset_info, int)):
             name = f"{mem_type}{subset_info}_{name}"
         elif (isinstance(subset_info, subsets.Subset)):
-            if (sdfg == None):
+            if sdfg is None:
                 raise ValueError("Cannot generate name for bank using subset if sdfg not provided")
             low, high = get_multibank_ranges_from_subset(subset_info, sdfg)
-            if (low + 1 != high):
+            if (low + 1) != high:
                 raise ValueError("ptr cannot generate names for subsets accessing more than one memory bank")
 
             name = f"{mem_type}{low}_{name}"
@@ -1440,7 +1440,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                 # no local buffers, the destination is not a sink) then it should be on a separate kernel.
 
                 if len(list(state.predecessors(e.dst))) > 1 and not isinstance(
-                        e.dst, nodes.ExitNode) and e.dst not in sink_nodes and scopes[e.dst] == None:
+                        e.dst, nodes.ExitNode) and e.dst not in sink_nodes and scopes[e.dst] is None:
                     # Loop over all predecessors (except this edge)
                     crossroad_node = False
                     for pred_edge in state.in_edges(e.dst):

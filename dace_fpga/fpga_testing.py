@@ -233,7 +233,7 @@ def fpga_test(run_synthesis: bool = True,
     def decorator(test_function: Callable):
 
         def internal(vendor: Optional[str]):
-            if vendor == None:
+            if vendor is None:
                 vendor = Config.get("compiler", "fpga", "vendor")
             p = FPGATestProcess(target=_run_fpga_test,
                                 args=(vendor, test_function, test_timeout, run_synthesis, assert_ii_1))
