@@ -35,7 +35,7 @@ jobs:
 
       - name: Install DaCe in development mode
         run: |
-          python -m pip install --editable "git+https://github.com/spcl/dace.git@84e83e6bbc8ecb57e9199c2b4dbffbe632cdeb73#egg=dace[testing,linting]"
+          python -m pip install --editable "git+https://github.com/spcl/dace.git@a75ab735bfadff91c2f8965d76870b536ca8e943#egg=dace[testing,linting]"
           python -m pip install --editable ".[testing,linting]"
           pre-commit install
           pre-commit run

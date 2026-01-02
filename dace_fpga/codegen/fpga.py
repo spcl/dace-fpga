@@ -1966,7 +1966,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             dst_nodedesc = dst_node.desc(sdfg)
 
             if write:
-                vconn = self.ptr(dst_node.data, dst_nodedesc, sdfg, memlet, is_write=True)
+                vconn = self.ptr(dst_node.data, dst_nodedesc, sdfg, memlet.dst_subset, is_write=True)
             ctype = dst_nodedesc.dtype.ctype
 
             #############################################
@@ -1974,7 +1974,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
 
             # Setting a reference
             if isinstance(dst_nodedesc, dt.Reference) and orig_vconn == 'set':
-                srcptr = self.ptr(src_node.data, src_nodedesc, sdfg, memlet, is_write=False)
+                srcptr = self.ptr(src_node.data, src_nodedesc, sdfg, memlet.src_subset, is_write=False)
                 defined_type, _ = self._dispatcher.defined_vars.get(srcptr)
                 stream.write(
                     "%s = %s;" % (vconn, cpp.cpp_ptr_expr(sdfg, memlet, defined_type, codegen=self)),
@@ -2011,12 +2011,12 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                         "{s}.pop(&{arr}[{aexpr}], {maxsize});".format(s=self.ptr(src_node.data,
                                                                                  src_nodedesc,
                                                                                  sdfg,
-                                                                                 memlet,
+                                                                                 memlet.src_subset,
                                                                                  is_write=False),
                                                                       arr=self.ptr(dst_node.data,
                                                                                    dst_nodedesc,
                                                                                    sdfg,
-                                                                                   memlet,
+                                                                                   memlet.dst_subset,
                                                                                    is_write=True),
                                                                       aexpr=array_expr,
                                                                       maxsize=cpp.sym2cpp(array_subset.num_elements())),
@@ -2032,12 +2032,12 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                             "{s}.push({arr});".format(s=self.ptr(dst_node.data,
                                                                  dst_nodedesc,
                                                                  sdfg,
-                                                                 memlet,
+                                                                 memlet.dst_subset,
                                                                  is_write=True),
                                                       arr=self.ptr(src_node.data,
                                                                    src_nodedesc,
                                                                    sdfg,
-                                                                   memlet,
+                                                                   memlet.src_subset,
                                                                    is_write=False)),
                             cfg,
                             state_id,
@@ -2048,12 +2048,12 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                             "{s}.push({arr});".format(s=self.ptr(dst_node.data,
                                                                  dst_nodedesc,
                                                                  sdfg,
-                                                                 memlet,
+                                                                 memlet.dst_subset,
                                                                  is_write=True),
                                                       arr=self.ptr(src_nodedesc.src,
                                                                    sdfg.arrays[src_nodedesc.src],
                                                                    sdfg,
-                                                                   memlet,
+                                                                   memlet.src_subset,
                                                                    is_write=False)),
                             cfg,
                             state_id,
@@ -2065,12 +2065,12 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                             "{s}.push({arr}, {size});".format(s=self.ptr(dst_node.data,
                                                                          dst_nodedesc,
                                                                          sdfg,
-                                                                         memlet,
+                                                                         memlet.dst_subset,
                                                                          is_write=True),
                                                               arr=self.ptr(src_node.data,
                                                                            src_nodedesc,
                                                                            sdfg,
-                                                                           memlet,
+                                                                           memlet.src_subset,
                                                                            is_write=False),
                                                               size=copysize),
                             cfg,
@@ -2235,7 +2235,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         # Allocate variable type
         memlet_type = conntype.dtype.ctype
 
-        ptr = codegen.ptr(memlet.data, desc, sdfg, memlet, is_write=output)
+        ptr = codegen.ptr(memlet.data, desc, sdfg, memlet.subset, is_write=output)
 
         types = None
         # Non-free symbol dependent Arrays due to their shape
@@ -2984,7 +2984,7 @@ __state->report.add_completion("{kernel_name}", "FPGA", 1e-3 * event_start, 1e-3
         desc = sdfg.arrays[mmlt.data]
         offset = cpp.cpp_offset_expr(desc, mmlt.subset, codegen=self)
         offset_expr = '[' + offset + ']'
-        ptrname = self.ptr(mmlt.data, desc, sdfg, mmlt, is_write, ancestor)
+        ptrname = self.ptr(mmlt.data, desc, sdfg, mmlt.subset, is_write, ancestor)
         typedef = conntype.ctype
         is_scalar = not isinstance(conntype, dtypes.pointer) and not is_fpga_array(desc)
 

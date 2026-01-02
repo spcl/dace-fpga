@@ -32,7 +32,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest-xdist flake8 coverage click
         pip uninstall -y dace
-        pip install "git+https://github.com/spcl/dace.git@84e83e6bbc8ecb57e9199c2b4dbffbe632cdeb73#egg=dace[testing]"
+        pip install "git+https://github.com/spcl/dace.git@a75ab735bfadff91c2f8965d76870b536ca8e943#egg=dace[testing]"
         curl -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
 
