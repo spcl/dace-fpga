@@ -157,13 +157,13 @@ class OpenCLDaceKeywordRemover(cpp.DaCeKeywordRemover):
 
         if veclen_rhs > veclen_lhs:
             veclen = veclen_rhs
-            ocltype = fpga.vector_element_type_of(dtype).ocltype
+            ocltype = opencl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype))
             self.width_converters.add((True, ocltype, veclen))
             unpack_str = "unpack_{}{}".format(ocltype, cpp.sym2cpp(veclen))
 
         if veclen_lhs > veclen_rhs and isinstance(dtype_rhs, dace.pointer):
             veclen = veclen_lhs
-            ocltype = fpga.vector_element_type_of(dtype).ocltype
+            ocltype = opencl_types.dtype_to_ocl_str(fpga.vector_element_type_of(dtype))
             self.width_converters.add((False, ocltype, veclen))
             pack_str = "pack_{}{}".format(ocltype, cpp.sym2cpp(veclen))
             # TODO: Horrible hack to not dereference pointers if we have to
