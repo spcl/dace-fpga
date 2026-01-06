@@ -1922,11 +1922,11 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         dst_node: nodes.Node,
         dst_storage: dtypes.StorageType,
         dst_schedule: dtypes.ScheduleType,
-        edge: Tuple[nodes.Node, Optional[str], nodes.Node, Optional[str], memlet.Memlet],
+        edge: MultiConnectorEdge[memlet.Memlet],
         dfg: StateSubgraphView,
         stream: CodeIOStream,
     ) -> None:
-        u, uconn, v, vconn, memlet = edge
+        uconn, vconn, memlet = edge.src_conn, edge.dst_conn, edge.data
         orig_vconn = vconn
 
         # Determine memlet directionality

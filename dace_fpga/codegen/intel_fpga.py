@@ -7,7 +7,7 @@ from six import StringIO
 import numpy as np
 
 import dace
-from dace import registry, dtypes, data as dt
+from dace import registry, dtypes, data as dt, Memlet
 from dace.codegen import cppunparse
 from dace.config import Config
 from dace.codegen import exceptions as cgx
@@ -17,6 +17,7 @@ from dace.codegen.prettycode import CodeIOStream
 from dace.codegen.targets import cpp
 from dace_fpga.codegen import fpga
 from dace.codegen.common import codeblock_to_cpp
+from dace.sdfg.graph import MultiConnectorEdge
 from dace.sdfg.type_inference import infer_expr_type
 from dace.frontend.python.astutils import rname, unparse, evalnode
 from dace.frontend import operations
@@ -940,7 +941,33 @@ __kernel void \\
                                                              ancestor=0)
         declaration_stream.write(f'{qualifier}{atype} {aname}  = {value};', cfg, state_id, node)
 
-    def generate_memlet_definition(self, sdfg, cfg, dfg, state_id, src_node, dst_node, edge, callsite_stream):
+    def _emit_devicelevel_copy(
+        self,
+        sdfg: SDFG,
+        cfg: ControlFlowRegion,
+        state_id: int,
+        src_node: nodes.Node,
+        src_storage: dtypes.StorageType,
+        dst_node: nodes.Node,
+        dst_storage: dtypes.StorageType,
+        dst_schedule: dtypes.ScheduleType,
+        edge: MultiConnectorEdge[Memlet],
+        dfg: StateSubgraphView,
+        stream: CodeIOStream,
+    ) -> None:
+        self.generate_memlet_definition(sdfg, cfg, dfg, state_id, src_node, dst_node, edge, stream)
+
+    def generate_memlet_definition(
+        self,
+        sdfg: SDFG,
+        cfg: ControlFlowRegion,
+        dfg: StateSubgraphView,
+        state_id: int,
+        src_node: nodes.Node,
+        dst_node: nodes.Node,
+        edge: MultiConnectorEdge[Memlet],
+        callsite_stream: CodeIOStream,
+    ):
 
         if isinstance(edge.dst, dace.sdfg.nodes.CodeNode):
             # Input memlet
