@@ -2979,8 +2979,7 @@ __state->report.add_completion("{kernel_name}", "FPGA", 1e-3 * event_start, 1e-3
                               pointer_name: str,
                               conntype: dtypes.typeclass,
                               ancestor: int = 1,
-                              is_write: bool = None,
-                              device_code=False) -> Tuple[str, str, str]:
+                              is_write: bool = None) -> Tuple[str, str, str]:
         desc = sdfg.arrays[mmlt.data]
         offset = cpp.cpp_offset_expr(desc, mmlt.subset, codegen=self)
         offset_expr = '[' + offset + ']'
@@ -3017,7 +3016,7 @@ __state->report.add_completion("{kernel_name}", "FPGA", 1e-3 * event_start, 1e-3
             typedef_and_ref, pointer_name, expr = cpp.emit_memlet_reference(self._dispatcher, sdfg, mmlt, pointer_name,
                                                                             conntype, self, ancestor, is_write)
 
-        if (not device_code and defined_type != DefinedType.ArrayInterface
+        if (not self._in_device_code and defined_type != DefinedType.ArrayInterface
                 and desc.storage == dace.StorageType.FPGA_Global and not isinstance(desc, dt.Scalar)):
             # This is a device buffer accessed on the host.
             # Cannot be accessed with offset different than zero. Check this if we can:

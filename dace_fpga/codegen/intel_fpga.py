@@ -926,12 +926,7 @@ __kernel void \\
             defined_type, _ = self._dispatcher.defined_vars.get(eptr, 0)
             # Register defined variable
             self._dispatcher.defined_vars.add(aname, defined_type, atype, allow_shadowing=True)
-            _, _, value = self.emit_memlet_reference(sdfg,
-                                                     edge.data,
-                                                     name,
-                                                     dtypes.pointer(nodedesc.dtype),
-                                                     ancestor=0,
-                                                     device_code=self._in_device_code)
+            _, _, value = self.emit_memlet_reference(sdfg, edge.data, name, dtypes.pointer(nodedesc.dtype), ancestor=0)
         else:
             qualifier = ""
             atype, aname, value = self.emit_memlet_reference(sdfg,
