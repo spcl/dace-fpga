@@ -350,7 +350,7 @@ DACE_EXPORTED int __dace_exit_intel_fpga({sdfg_state_name} *__state) {{
             # channel mangling: the expression could contain indexing
             expr.replace(var_name, self.get_mangled_channel_name(var_name, self._kernel_count))
             read_expr = "read_channel_intel({})".format(expr)
-        elif defined_type == DefinedType.Pointer:
+        elif defined_type in (DefinedType.Pointer, DefinedType.Object):
             if index and index != "0":
                 read_expr = f"*({expr} + {index})"
             else:
@@ -385,7 +385,7 @@ DACE_EXPORTED int __dace_exit_intel_fpga({sdfg_state_name} *__state) {{
                                  for i in range(packing_factor))
             else:
                 return "write_channel_intel({}, {});".format(chan_name, read_expr)
-        elif defined_type == DefinedType.Pointer:
+        elif defined_type in (DefinedType.Pointer, DefinedType.Object):
             if wcr is not None:
                 if (redtype != dace.dtypes.ReductionType.Min and redtype != dace.dtypes.ReductionType.Max):
                     return "{}[{}] = {}[{}] {} {};".format(write_expr, index, write_expr, index,
@@ -1350,7 +1350,7 @@ __kernel void \\
                 expr = f"*({vtype} *)(&{dst_expr})"
             elif src_dtype.base_type != dst_dtype:
                 expr = f"({vtype})(&{expr})"
-            elif defined_type == DefinedType.Pointer:
+            elif defined_type in (DefinedType.Pointer, DefinedType.Object):
                 expr = "&" + expr
         elif not is_scalar:
             expr = "&" + expr

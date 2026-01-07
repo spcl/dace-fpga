@@ -686,6 +686,8 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         state_id = state.block_id
         dfg = cfg.state(state_id)
 
+        self._dispatcher.defined_vars.enter_scope(subgraph)
+
         kernel_args_call = []
         kernel_args_module = []
         for is_output, pname, p, interface_ids in parameters:
@@ -719,6 +721,10 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                         # in this case we don't know if this is accessed read-only or not
                         kernel_args_module.append("{} *{}".format(dtype.ctype, arr_name))
 
+                    self._dispatcher.defined_vars.add(arr_name,
+                                                      DefinedType.Pointer,
+                                                      kernel_args_module[-1][:-len(arr_name)],
+                                                      allow_shadowing=True)
             else:
                 if isinstance(p, dt.Stream):
                     # if this is an external stream, its name may have been mangled in the kernel
@@ -863,8 +869,6 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         # ----------------------------------------------------------------------
         # Generate kernel code
         # ----------------------------------------------------------------------
-
-        self._dispatcher.defined_vars.enter_scope(subgraph)
 
         module_body_stream = CodeIOStream()
 

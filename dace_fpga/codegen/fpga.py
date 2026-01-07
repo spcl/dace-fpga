@@ -2275,7 +2275,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
 
         defined = None
 
-        if var_type in [DefinedType.Scalar, DefinedType.Pointer, DefinedType.ArrayInterface]:
+        if var_type in (DefinedType.Scalar, DefinedType.Pointer, DefinedType.Object, DefinedType.ArrayInterface):
             if output:
                 if is_pointer and var_type == DefinedType.ArrayInterface:
                     result += "{} {} = {};".format(memlet_type, local_name, expr)
