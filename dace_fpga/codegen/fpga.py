@@ -1207,7 +1207,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                 result_decl.write("hlslib::ocl::Buffer <{}, hlslib::ocl::Access::readWrite> {};".format(
                     nodedesc.dtype.ctype, ptrname))
                 self._dispatcher.declared_arrays.add(
-                    ptrname, DefinedType.Pointer,
+                    ptrname, DefinedType.Object,
                     'hlslib::ocl::Buffer <{}, hlslib::ocl::Access::readWrite>'.format(nodedesc.dtype.ctype))
         elif (nodedesc.storage in (dtypes.StorageType.FPGA_Local, dtypes.StorageType.FPGA_Registers,
                                    dtypes.StorageType.FPGA_ShiftRegister)):
@@ -1329,7 +1329,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                                            f"{cpp.sym2cpp(arrsize)});\n")
 
                         self._dispatcher.defined_vars.add(
-                            alloc_name, DefinedType.Pointer,
+                            alloc_name, DefinedType.Object,
                             'hlslib::ocl::Buffer <{}, hlslib::ocl::Access::readWrite>'.format(nodedesc.dtype.ctype))
 
             elif (nodedesc.storage in (dtypes.StorageType.FPGA_Local, dtypes.StorageType.FPGA_Registers,

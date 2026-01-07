@@ -1039,7 +1039,7 @@ __kernel void \\
                 # Variable number of reads or writes
                 result += "{} *{} = &{};".format(memlet_type, connector, rhs)
                 self._dispatcher.defined_vars.add(connector, DefinedType.Pointer, '%s *' % memlet_type)
-        elif def_type == DefinedType.Pointer:
+        elif def_type in (DefinedType.Pointer, DefinedType.Object):
             if cast:
                 rhs = f"(({memlet_type} const *){data_name})"
             else:
