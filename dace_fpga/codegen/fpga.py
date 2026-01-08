@@ -147,8 +147,6 @@ def iterate_distributed_subset(desc: dt.Array, access_memlet: memlet.Memlet, is_
             low, high = get_multibank_ranges_from_subset(subset, sdfg)
             for k in range(low, high):
                 yield k
-    else:
-        yield 0
 
 
 def modify_distributed_subset(subset: subsets.Subset, change: int):
@@ -2250,6 +2248,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             pass
         if not types:
             types = self._dispatcher.defined_vars.get(ptr, is_global=True)
+
         var_type, ctypedef = types
 
         if fpga.is_fpga_array(desc):
@@ -3015,6 +3014,14 @@ __state->report.add_completion("{kernel_name}", "FPGA", 1e-3 * event_start, 1e-3
         else:
             typedef_and_ref, pointer_name, expr = cpp.emit_memlet_reference(self._dispatcher, sdfg, mmlt, pointer_name,
                                                                             conntype, self, ancestor, is_write)
+
+            final_defined_type, final_typedef = self._dispatcher.defined_vars.get(pointer_name)
+            if self._in_device_code and final_defined_type == DefinedType.ArrayInterface:
+                # Array interfaces become pointers in device code, override entry
+                self._dispatcher.defined_vars.add(pointer_name,
+                                                  DefinedType.Pointer,
+                                                  final_typedef,
+                                                  allow_shadowing=True)
 
         if (not self._in_device_code and defined_type != DefinedType.ArrayInterface
                 and desc.storage == dace.StorageType.FPGA_Global and not isinstance(desc, dt.Scalar)):

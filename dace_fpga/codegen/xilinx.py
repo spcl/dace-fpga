@@ -1247,25 +1247,24 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                in_memlet.subset,
                                is_write=False,
                                ancestor=1)
-            is_memory_interface = (self._dispatcher.defined_vars.get(ptrname, 1)[0] == DefinedType.ArrayInterface)
-            desc = sdfg.arrays[in_memlet.data]
-            if is_memory_interface:
-                for bank in fpga.iterate_distributed_subset(sdfg.arrays[in_memlet.data], in_memlet, False, sdfg):
-                    interface_name = fpga.fpga_ptr(vconn,
-                                                   sdfg.arrays[in_memlet.data],
-                                                   sdfg,
-                                                   bank,
-                                                   False,
-                                                   is_array_interface=True,
-                                                   decouple_array_interfaces=self._decouple_array_interfaces)
-                    passed_memlet = copy.deepcopy(in_memlet)
-                    passed_memlet.subset = fpga.modify_distributed_subset(passed_memlet.subset, bank)
-                    interface_ref = self.emit_memlet_reference(sdfg,
-                                                               passed_memlet,
-                                                               interface_name,
-                                                               conntype=node.in_connectors[vconn],
-                                                               is_write=False)
-                    memlet_references.append(interface_ref)
+            appended = False
+            for bank in fpga.iterate_distributed_subset(sdfg.arrays[in_memlet.data], in_memlet, False, sdfg):
+                interface_name = fpga.fpga_ptr(vconn,
+                                               sdfg.arrays[in_memlet.data],
+                                               sdfg,
+                                               bank,
+                                               False,
+                                               is_array_interface=True,
+                                               decouple_array_interfaces=self._decouple_array_interfaces)
+                passed_memlet = copy.deepcopy(in_memlet)
+                passed_memlet.subset = fpga.modify_distributed_subset(passed_memlet.subset, bank)
+                interface_ref = self.emit_memlet_reference(sdfg,
+                                                           passed_memlet,
+                                                           interface_name,
+                                                           conntype=node.in_connectors[vconn],
+                                                           is_write=False)
+                memlet_references.append(interface_ref)
+                appended = True
 
             if vconn in inout:
                 continue
@@ -1280,7 +1279,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                              vconn,
                                              conntype=node.in_connectors[vconn],
                                              is_write=False)
-            if not is_memory_interface:
+            if not appended:
                 memlet_references.append(ref)
 
         for _, uconn, _, _, out_memlet in sorted(state.out_edges(node), key=lambda e: e.src_conn or ""):
@@ -1304,26 +1303,26 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                out_memlet.subset,
                                is_write=True,
                                ancestor=1)
-            is_memory_interface = (self._dispatcher.defined_vars.get(ptrname, 1)[0] == DefinedType.ArrayInterface)
+            appended = False
+            for bank in fpga.iterate_distributed_subset(sdfg.arrays[out_memlet.data], out_memlet, True, sdfg):
+                interface_name = fpga.fpga_ptr(uconn,
+                                               sdfg.arrays[out_memlet.data],
+                                               sdfg,
+                                               bank,
+                                               True,
+                                               is_array_interface=True,
+                                               decouple_array_interfaces=self._decouple_array_interfaces)
+                passed_memlet = copy.deepcopy(out_memlet)
+                passed_memlet.subset = fpga.modify_distributed_subset(passed_memlet.subset, bank)
+                interface_ref = self.emit_memlet_reference(sdfg,
+                                                           passed_memlet,
+                                                           interface_name,
+                                                           conntype=node.out_connectors[uconn],
+                                                           is_write=True)
+                memlet_references.append(interface_ref)
+                appended = True
 
-            if is_memory_interface:
-                for bank in fpga.iterate_distributed_subset(sdfg.arrays[out_memlet.data], out_memlet, True, sdfg):
-                    interface_name = fpga.fpga_ptr(uconn,
-                                                   sdfg.arrays[out_memlet.data],
-                                                   sdfg,
-                                                   bank,
-                                                   True,
-                                                   is_array_interface=True,
-                                                   decouple_array_interfaces=self._decouple_array_interfaces)
-                    passed_memlet = copy.deepcopy(out_memlet)
-                    passed_memlet.subset = fpga.modify_distributed_subset(passed_memlet.subset, bank)
-                    interface_ref = self.emit_memlet_reference(sdfg,
-                                                               passed_memlet,
-                                                               interface_name,
-                                                               conntype=node.out_connectors[uconn],
-                                                               is_write=True)
-                    memlet_references.append(interface_ref)
-            else:
+            if not appended:
                 memlet_references.append(ref)
 
         return memlet_references

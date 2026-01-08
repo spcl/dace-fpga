@@ -189,3 +189,4 @@ if __name__ == "__main__":
     test_ddr_reduce_red_1x50_1b(None)
     test_ddr_reduce_red_1x40_8b(None)
     test_ddr_reduce_red_2x40_6b(None)
+    test_hbm_reduce_red_1x40_8b_decouple_array_interfaces(None)

@@ -99,5 +99,6 @@ def test_fusion_with_transient_fpga_decoupled():
 
 
 if __name__ == "__main__":
-    multiple_fusions_fpga(None)
-    fusion_with_transient_fpga(None)
+    test_multiple_fusions_fpga(None)
+    test_fusion_with_transient_fpga(None)
+    test_fusion_with_transient_fpga_decoupled(None)
