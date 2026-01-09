@@ -2251,18 +2251,6 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
 
         var_type, ctypedef = types
 
-        if fpga.is_fpga_array(desc):
-            ptr = fpga.fpga_ptr(
-                memlet.data,
-                desc,
-                sdfg,
-                memlet.subset,
-                is_write=False,
-                dispatcher=self._dispatcher,
-                #ancestor,
-                is_array_interface=var_type == DefinedType.ArrayInterface,
-                decouple_array_interfaces=self._decouple_array_interfaces)
-
         result = ''
         expr = (cpp.cpp_array_expr(sdfg, memlet, with_brackets=False, codegen=self)
                 if var_type in [DefinedType.Pointer, DefinedType.StreamArray, DefinedType.ArrayInterface] else ptr)

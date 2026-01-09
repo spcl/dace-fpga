@@ -131,16 +131,5 @@ def test_xilinx_decoupled_array_interfaces():
 
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--target", default='cpu', choices=['cpu', 'gpu', 'fpga'], help='Target platform')
-
-    args = vars(parser.parse_args())
-    target = args["target"]
-
-    if target == "cpu":
-        run_nussinov(dace.dtypes.DeviceType.CPU)
-    elif target == "gpu":
-        run_nussinov(dace.dtypes.DeviceType.GPU)
-    elif target == "fpga":
-        run_nussinov(dace.dtypes.DeviceType.FPGA)
+    test_fpga(None)
+    test_xilinx_decoupled_array_interfaces(None)

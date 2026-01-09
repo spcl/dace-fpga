@@ -215,45 +215,7 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
         """
         Vendor-specific SDFG Preprocessing
         """
-
-        if self._decouple_array_interfaces:
-            # If array accesses are decoupled, preprocess inter state edge assignments:
-            # - look at every interstate edge
-            # - if any of them accesses an ArrayInterface (Global FPGA memory), qualify its name and replace it
-            #       in the assignment string
-
-            for graph in sdfg.all_sdfgs_recursive():
-                for e in graph.all_interstate_edges():
-                    if len(e.data.assignments) > 0:
-                        replace_dict = dict()
-
-                        for variable, value in e.data.assignments.items():
-                            expr = ast.parse(value)
-                            # walk in the expression, get all array names and check whether we need to qualify them
-                            for node in ast.walk(expr):
-                                if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
-                                    arr_name = node.value.id
-
-                                    if arr_name not in replace_dict and arr_name in graph.arrays and graph.arrays[
-                                            arr_name].storage == dace.dtypes.StorageType.FPGA_Global:
-                                        repl = fpga.fpga_ptr(arr_name,
-                                                             graph.arrays[node.value.id],
-                                                             sdfg,
-                                                             None,
-                                                             False,
-                                                             None,
-                                                             None,
-                                                             True,
-                                                             decouple_array_interfaces=self._decouple_array_interfaces)
-                                        replace_dict[arr_name] = repl
-
-                        # Perform replacement and update graph.arrays to allow type inference
-                        # on interstate edges
-                        for k, v in replace_dict.items():
-                            e.data.replace(k, v)
-                            if v not in graph.arrays:
-                                # Note: this redundancy occurs only during codegen
-                                graph.arrays[v] = graph.arrays[k]
+        pass
 
     def define_stream(self, dtype, buffer_size, var_name, array_size, function_stream, kernel_stream, sdfg):
         """
