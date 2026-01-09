@@ -2487,8 +2487,8 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
             for e in dynamic_map_inputs(cfg.state(state_id), node):
                 if e.data.data != e.dst_conn:
                     callsite_stream.write(
-                        self._cpu_codegen.memlet_definition(sdfg, e.data, False, e.dst_conn,
-                                                            e.dst.in_connectors[e.dst_conn]), cfg, state_id, node)
+                        self.memlet_definition(sdfg, e.data, False, e.dst_conn, e.dst.in_connectors[e.dst_conn]), cfg,
+                        state_id, node)
 
             # Pipeline innermost loops
             scope_children = dfg.scope_children()
