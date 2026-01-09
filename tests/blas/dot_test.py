@@ -97,26 +97,28 @@ def test_dot_pure():
     assert isinstance(run_test("pure", 64, 1), dace.SDFG)
 
 
+# TODO: Refactor to use assert or return True/False (pytest deprecation of returning non-booleans)
+# The below tests rely on the FPGA testing framework, which expects test functions to return the generated SDFGs.
 @xilinx_test()
 def test_dot_xilinx():
-    assert run_test("xilinx", 64, 16)
+    return run_test("xilinx", 64, 16)
 
 
 @xilinx_test()
 def test_dot_xilinx_decoupled():
     with set_temporary("compiler", "xilinx", "decouple_array_interfaces", value=True):
-        assert run_test("xilinx", 64, 16)
+        return run_test("xilinx", 64, 16)
 
 
 @intel_fpga_test()
 def test_dot_intel_fpga():
-    assert run_test("intel_fpga", 64, 16)
+    return run_test("intel_fpga", 64, 16)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("N", type=int, nargs="?", default=64)
-    parser.add_argument("--target", dest="target", default="pure")
+    parser.add_argument("--target", dest="target", default="xilinx")
     parser.add_argument("--vector-length", type=int, default=16)
     args = parser.parse_args()
     size = args.N
