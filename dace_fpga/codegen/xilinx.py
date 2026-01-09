@@ -1248,13 +1248,16 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                is_write=False,
                                ancestor=1)
             appended = False
+            is_memory_interface = (self._dispatcher.defined_vars.get(ptrname, 1)[0] == DefinedType.ArrayInterface)
             for bank in fpga.iterate_distributed_subset(sdfg.arrays[in_memlet.data], in_memlet, False, sdfg):
+                if vconn.startswith('__') and (vconn.endswith('_in') or vconn.endswith('_out')):
+                    is_memory_interface = False
                 interface_name = fpga.fpga_ptr(vconn,
                                                sdfg.arrays[in_memlet.data],
                                                sdfg,
                                                bank,
                                                False,
-                                               is_array_interface=True,
+                                               is_array_interface=is_memory_interface,
                                                decouple_array_interfaces=self._decouple_array_interfaces)
                 passed_memlet = copy.deepcopy(in_memlet)
                 passed_memlet.subset = fpga.modify_distributed_subset(passed_memlet.subset, bank)
@@ -1304,13 +1307,16 @@ DACE_EXPORTED int __dace_exit_xilinx({sdfg_state_name} *__state) {{
                                is_write=True,
                                ancestor=1)
             appended = False
+            is_memory_interface = (self._dispatcher.defined_vars.get(ptrname, 1)[0] == DefinedType.ArrayInterface)
             for bank in fpga.iterate_distributed_subset(sdfg.arrays[out_memlet.data], out_memlet, True, sdfg):
+                if uconn.startswith('__') and (uconn.endswith('_in') or uconn.endswith('_out')):
+                    is_memory_interface = False
                 interface_name = fpga.fpga_ptr(uconn,
                                                sdfg.arrays[out_memlet.data],
                                                sdfg,
                                                bank,
                                                True,
-                                               is_array_interface=True,
+                                               is_array_interface=is_memory_interface,
                                                decouple_array_interfaces=self._decouple_array_interfaces)
                 passed_memlet = copy.deepcopy(out_memlet)
                 passed_memlet.subset = fpga.modify_distributed_subset(passed_memlet.subset, bank)
