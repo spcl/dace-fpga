@@ -13,11 +13,12 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union
 import copy
 
 import dace
+from dace.codegen.dispatcher import TargetDispatcher
 from dace.codegen.targets import cpp
 from dace import subsets, data as dt, dtypes, memlet, symbolic
 from dace.config import Config
 from dace.sdfg import SDFG, nodes, utils, dynamic_map_inputs
-from dace.sdfg import ScopeSubgraphView
+from dace.sdfg import ScopeSubgraphView, scope_contains_scope
 from dace.sdfg.graph import MultiConnectorEdge
 from dace.codegen import exceptions as cgx
 from dace.codegen.dispatcher import DefinedType
@@ -2844,9 +2845,140 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
         self._dispatcher.dispatch_copy(src_node, dst_node, edge, sdfg, cfg, state_dfg, state_id, function_stream,
                                        callsite_stream)
 
-    def process_out_memlets(self, *args, **kwargs):
-        # Call CPU implementation with this code generator as callback
-        self._cpu_codegen.process_out_memlets(*args, codegen=self, **kwargs)
+    def process_out_memlets(self,
+                            sdfg: SDFG,
+                            cfg: ControlFlowRegion,
+                            state_id: int,
+                            node: nodes.Node,
+                            dfg: StateSubgraphView,
+                            dispatcher: TargetDispatcher,
+                            result: CodeIOStream,
+                            locals_defined: bool,
+                            function_stream: CodeIOStream,
+                            skip_wcr: bool = False,
+                            codegen: Optional[TargetCodeGenerator] = None):
+        # Adapted from the DaCe CPU code generator to handle FPGA-specific pointer naming
+        codegen = codegen if codegen is not None else self
+        state: SDFGState = cfg.nodes()[state_id]
+        scope_dict = state.scope_dict()
+
+        for edge in dfg.out_edges(node):
+            memlet: dace.Memlet
+            uconn, v, memlet = edge.src_conn, edge.dst, edge.data
+            if skip_wcr and memlet.wcr is not None:
+                continue
+            dst_edge = dfg.memlet_path(edge)[-1]
+            dst_node = dst_edge.dst
+
+            # Target is neither a data nor a tasklet node
+            if isinstance(node, nodes.AccessNode) and (not isinstance(dst_node, nodes.AccessNode)
+                                                       and not isinstance(dst_node, nodes.CodeNode)):
+                continue
+
+            # Skip array->code (will be handled as a tasklet input)
+            if isinstance(node, nodes.AccessNode) and isinstance(v, nodes.CodeNode):
+                continue
+
+            # code->code (e.g., tasklet to tasklet)
+            if isinstance(dst_node, nodes.CodeNode) and edge.src_conn:
+                shared_data_name = edge.data.data
+                if not shared_data_name:
+                    # Very unique name. TODO: Make more intuitive
+                    shared_data_name = '__dace_%d_%d_%d_%d_%s' % (cfg.cfg_id, state_id, dfg.node_id(node),
+                                                                  dfg.node_id(dst_node), edge.src_conn)
+
+                result.write(
+                    "%s = %s;" % (shared_data_name, edge.src_conn),
+                    cfg,
+                    state_id,
+                    [edge.src, edge.dst],
+                )
+                continue
+
+            # If the memlet is not pointing to a data node (e.g. tasklet), then
+            # the tasklet will take care of the copy
+            if not isinstance(dst_node, nodes.AccessNode):
+                continue
+            # If the memlet is pointing into an array in an inner scope, then
+            # the inner scope (i.e., the output array) must handle it
+            if scope_dict[node] != scope_dict[dst_node] and scope_contains_scope(scope_dict, node, dst_node):
+                continue
+
+            # Array to tasklet (path longer than 1, handled at tasklet entry)
+            if node == dst_node:
+                continue
+
+            # Tasklet -> array with a memlet. Writing to array is emitted only if the memlet is not empty
+            if isinstance(node, nodes.CodeNode) and not edge.data.is_empty():
+                if not uconn:
+                    raise SyntaxError("Cannot copy memlet without a local connector: {} to {}".format(
+                        str(edge.src), str(edge.dst)))
+
+                conntype = node.out_connectors[uconn]
+                is_scalar = not isinstance(conntype, dtypes.pointer)
+                if isinstance(conntype, dtypes.pointer) and sdfg.arrays[memlet.data].dtype == conntype:
+                    is_scalar = True  # Pointer to pointer assignment
+                is_stream = isinstance(sdfg.arrays[memlet.data], dt.Stream)
+                is_refset = isinstance(sdfg.arrays[memlet.data], dt.Reference) and dst_edge.dst_conn == 'set'
+
+                if (is_scalar and not memlet.dynamic and not is_stream) or is_refset:
+                    out_local_name = "    __" + uconn
+                    in_local_name = uconn
+                    if not locals_defined:
+                        out_local_name = codegen.memlet_ctor(sdfg, memlet, node.out_connectors[uconn], True)
+                        in_memlets = [d for _, _, _, _, d in dfg.in_edges(node)]
+                        assert len(in_memlets) == 1
+                        in_local_name = codegen.memlet_ctor(sdfg, in_memlets[0], node.out_connectors[uconn], False)
+
+                    if memlet.wcr is not None:
+                        nc = not cpp.is_write_conflicted(dfg, edge, sdfg_schedule=self._toplevel_schedule)
+                        write_expr = codegen.write_and_resolve_expr(
+                            sdfg, memlet, nc, out_local_name, in_local_name, dtype=node.out_connectors[uconn]) + ";"
+                    else:
+                        if isinstance(node, nodes.NestedSDFG):
+                            # This case happens with nested SDFG outputs,
+                            # which we skip since the memlets are references
+                            continue
+                        desc = sdfg.arrays[memlet.data]
+                        ptrname = codegen.ptr(memlet.data, desc, sdfg)
+                        is_global = desc.lifetime in (dtypes.AllocationLifetime.Global,
+                                                      dtypes.AllocationLifetime.Persistent,
+                                                      dtypes.AllocationLifetime.External)
+                        try:
+                            defined_type, _ = self._dispatcher.declared_arrays.get(ptrname, is_global=is_global)
+                        except KeyError:
+                            defined_type, _ = self._dispatcher.defined_vars.get(ptrname, is_global=is_global)
+
+                        if defined_type == DefinedType.Scalar:
+                            mname = codegen.ptr(memlet.data, desc, sdfg)
+                            write_expr = f"{mname} = {in_local_name};"
+                        elif defined_type == DefinedType.Pointer and is_refset:
+                            mname = codegen.ptr(memlet.data, desc, sdfg)
+                            write_expr = f"{mname} = {in_local_name};"
+                        else:
+                            desc_dtype = desc.dtype
+                            offset_cppstr = cpp.cpp_offset_expr(desc, memlet.subset, None, codegen=codegen)
+                            expr = codegen.ptr(memlet.data, desc, sdfg, subset=memlet.subset, is_write=True)
+                            expr += f'[{offset_cppstr}]'
+                            write_expr = codegen.make_ptr_assignment(in_local_name, conntype, expr, desc_dtype)
+
+                    # Write out
+                    result.write(write_expr, cfg, state_id, node)
+
+            # Dispatch array-to-array outgoing copies here
+            elif isinstance(node, nodes.AccessNode):
+                if dst_node != node and not isinstance(dst_node, nodes.Tasklet):
+                    dispatcher.dispatch_copy(
+                        node,
+                        dst_node,
+                        edge,
+                        sdfg,
+                        cfg,
+                        dfg,
+                        state_id,
+                        function_stream,
+                        result,
+                    )
 
     def generate_tasklet_preamble(self, *args, **kwargs):
         # Fall back on CPU implementation
