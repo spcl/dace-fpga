@@ -2147,7 +2147,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
 
             nc = True
             if memlet.wcr is not None:
-                nc = not cpp.is_write_conflicted(dfg, edge, sdfg_schedule=self._toplevel_schedule)
+                nc = not cpp.is_write_conflicted(dfg, edge, sdfg_schedule=self._cpu_codegen._toplevel_schedule)
             if nc:
                 stream.write(
                     """
@@ -2931,7 +2931,7 @@ std::cout << "FPGA program \\"{state.label}\\" executed in " << elapsed << " sec
                         in_local_name = codegen.memlet_ctor(sdfg, in_memlets[0], node.out_connectors[uconn], False)
 
                     if memlet.wcr is not None:
-                        nc = not cpp.is_write_conflicted(dfg, edge, sdfg_schedule=self._toplevel_schedule)
+                        nc = not cpp.is_write_conflicted(dfg, edge, sdfg_schedule=self._cpu_codegen._toplevel_schedule)
                         write_expr = codegen.write_and_resolve_expr(
                             sdfg, memlet, nc, out_local_name, in_local_name, dtype=node.out_connectors[uconn]) + ";"
                     else:
