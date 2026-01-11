@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dace-fpga"
+version = "1.0.0"
+description = "FPGA code generation support for the DaCe data-centric framework"
+readme = "README.md"
+license = "BSD-3-Clause"
+authors = [
+    { name = "ETH Zurich and the DaCe authors" }
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Code Generators",
+]
+keywords = ["fpga", "dace", "hls", "xilinx", "intel", "code-generation", "dataflow"]
+
+dependencies = [
+    "dace @ git+https://github.com/spcl/dace.git@v2.0.0-alpha2",
+]
+
+[project.optional-dependencies]
+testing = [
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+    "coverage",
+]
+linting = [
+    "flake8",
+    "pre-commit",
+]
+dev = [
+    "dace-fpga[testing,linting]",
+]
+
+[project.urls]
+Homepage = "https://github.com/spcl/dace-fpga"
+Repository = "https://github.com/spcl/dace-fpga"
+Documentation = "https://spcldace.readthedocs.io"
+Issues = "https://github.com/spcl/dace-fpga/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dace_fpga*"]
+
+[tool.setuptools.package-data]
+dace_fpga = [
+    "fpga_config_schema.yml",
+    "cmake/*",
+    "runtime/include/*",
+]
+"dace_fpga.external.hlslib" = [
+    "cmake/*",
+    "include/**/*",
+]
+"dace_fpga.external.rtllib" = [
+    "cmake/*",
+    "templates/*",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "long: Test runs for a long time and is skipped in CI (select with '-m \"long\"')",
+    "sequential: Test must be run sequentially (select with '-m \"sequential\"')",
+    "verilator: Test requires Verilator (>=v4.028) installed (select with '-m \"verilator\"')",
+    "fpga: Test requires the Xilinx and Intel FPGA tools to be evaluated. (select with '-m \"fpga\"')",
+    "rtl_hardware: Test requires the Xilinx tools to be evaluated. (select with '-m rtl_hardware')",
+]
+testpaths = ["tests"]
+addopts = "--color=yes"

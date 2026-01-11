@@ -10,10 +10,23 @@ Xilinx and Intel FPGA designs directly from DaCe programs.
 Quick Start
 -----------
 
-1. Install DaCe: `pip install dace`.
-2. Clone this repository and fetch submodules: `git clone https://github.com/spcl/dace-fpga.git && cd dace-fpga && git submodule update --init --recursive`.
-3. Make the package importable in the same environment as DaCe, for example: `export PYTHONPATH=$(pwd):$PYTHONPATH`.
-4. Run a sample to verify the toolchain (requires vendor tools or emulation): `python samples/gemv_fpga.py`.
+1. Clone this repository with submodules:
+   ```bash
+   git clone --recursive https://github.com/spcl/dace-fpga.git
+   cd dace-fpga
+   ```
+2. Install the package (this will also install the correct version of DaCe from GitHub):
+   ```bash
+   pip install .
+   ```
+   Or for development:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+3. Run a sample to verify the toolchain (requires vendor tools or emulation):
+   ```bash
+   python samples/gemv_fpga.py
+   ```
 
 Repository Contents
 -------------------
