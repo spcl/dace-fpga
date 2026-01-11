@@ -1,5 +1,10 @@
 [run]
 concurrency = multiprocessing
+omit =
+    */*test.py
+    */test_*.py
+    samples/*
+    samples/rtl/*
 
 [report]
 # Regexes for lines to exclude from consideration
