@@ -30,7 +30,8 @@ jobs:
         python -m venv ~/.venv      # create venv so we can use pip
         source ~/.venv/bin/activate # activate venv
         python -m pip install --upgrade pip
-        pip install ".[testing]" pytest-xdist flake8 coverage click
+        # Use editable install so tests can find samples/ directory
+        pip install -e ".[testing]" pytest-xdist flake8 coverage click
         curl -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
 
